@@ -1,7 +1,12 @@
+import java.util.ArrayList;
+
 public class Catalog {
-    String db_loc;
+    ArrayList<Table> tables_list = new ArrayList<>();
+
 
     public Catalog() {
 
     }
+
+
 }
