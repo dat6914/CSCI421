@@ -7,7 +7,15 @@ public class Table {
     private ArrayList<String> attriType_list = new ArrayList<>();
     private ArrayList<Record> record_list = new ArrayList<>();
 
+    private ArrayList<Page> page_list = new ArrayList<>();
+
     public Table(String tableName, String primaryKeyName, ArrayList<String> attriNameList, ArrayList<String> attriTypeList) {
+        this.tableName = tableName;
+        this.primaryKeyName = primaryKeyName;
+        this.attriName_list = attriNameList;
+        this.attriType_list = attriTypeList;
+        this.page_list = page_list;
+        this.tableName = tableName;
     }
 
     public Record getRecordByPrimaryKey(String primaryKeyName) {
@@ -53,4 +61,11 @@ public class Table {
         return attriType_list.get(index);
     }
 
+    public String getSchema() {
+        return null;
+    }
+
+    public ArrayList<Page> getPage_list() {
+        return page_list;
+    }
 }

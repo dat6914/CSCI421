@@ -41,5 +41,18 @@ public class Catalog {
         tables_list.add(table);
     }
 
+    public void displayTableInfo(String tableName) {
+        for (Table table : tables_list) {
+            if (table.tableName.equals(tableName)) {
+                System.out.println("Table name: " + table.tableName);
+                System.out.println("Table schema: " + table.getSchema());
+                System.out.println("Pages: " + table.getPage_list().size());
+                System.out.println("Records: " + table.getRecord_list().size());
+                return;
+            }
+        }
+        System.out.println("ERROR: Table does not exist.");
+    }
+
 
 }
