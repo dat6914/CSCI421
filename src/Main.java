@@ -17,12 +17,15 @@ public class Main {
         //else, create a new database at given location with pagesize and buffersize
 
         File directory = new File(String.valueOf(db_loc));
+        System.out.println("Searching for database at " + db_loc + "...");
         if (!directory.exists()) {
-            System.out.println("Database does not exist. Creating a new database...");
+            System.out.println("Database does not exist. Creating a new database at" + db_loc + "...");
             directory.mkdir();
         } else {
-            System.out.println("Database exists. Restarting the database...");
+            System.out.println("Database exists.");
         }
+        System.out.println("Page Size: " + page_size);
+        System.out.println("Buffer Size: " + buffer_size);
 
         StorageManager storageManager = new StorageManager(db_loc, page_size, buffer_size);
 
