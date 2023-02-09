@@ -75,10 +75,7 @@ public class Main {
     }
 
     public static void displayInfo(String tableName) {
-        System.out.println("Table name: ");
-        System.out.println("Table schema: ");
-        System.out.println("Number of pages: ");
-        System.out.println("Number of records: ");
+        Database.database.catalog.displayTableInfo(tableName);
     }
 
     public static void displaySchema() {
