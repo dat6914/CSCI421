@@ -39,6 +39,7 @@ public class Catalog {
         Table table = new Table(tableName, primaryKeyName, attriName_list, attriType_list);
 
         tables_list.add(table);
+        System.out.println("SUCCESS");
     }
 
     public void displayTableInfo(String tableName) {
