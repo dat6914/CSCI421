@@ -105,7 +105,7 @@ public class Main {
         System.out.println("        <attr_name1> <attr_type1> primarykey,");
         System.out.println("        <attr_name2> <attr_type2>,...");
         System.out.println("        <attr_nameN> <attr_typeN>  );");
-        System.out.println("    quit program");
+        System.out.println("    <quit>");
 
     }
 }
