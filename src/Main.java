@@ -1,3 +1,4 @@
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -10,13 +11,22 @@ public class Main {
         String db_loc = args[0];
         int page_size = Integer.parseInt(args[1]);
         int buffer_size = Integer.parseInt(args[2]);
-        StorageManager storageManager = new StorageManager(db_loc, page_size, buffer_size);
-
-        Database database = null;
 
         //Check if there is database at the given database location
         //if there is then restart that database
         //else, create a new database at given location with pagesize and buffersize
+
+        File directory = new File(String.valueOf(db_loc));
+        if (!directory.exists()) {
+            System.out.println("Database does not exist. Creating a new database...");
+            directory.mkdir();
+        } else {
+            System.out.println("Database exists. Restarting the database...");
+        }
+
+        StorageManager storageManager = new StorageManager(db_loc, page_size, buffer_size);
+
+        Database database = null;
 
         System.out.println("Database is available now!");
 
