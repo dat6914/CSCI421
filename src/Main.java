@@ -41,7 +41,7 @@ public class Main {
             String[] optionArr = input.split(" ");
             if (input.equals("display schema")) {
                 displaySchema();
-            } else if (input.equals("quit program")) {
+            } else if (input.equals("<quit>")) {
                 quitProgram();
                 break;
             } else if (optionArr[0].equals("display") && optionArr[1].equals("info") && optionArr.length == 3) {
