@@ -1,8 +1,15 @@
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Catalog {
 
-    ArrayList<Table> tables_list = new ArrayList<>();
+    private ArrayList<Table> tables_list = new ArrayList<>();
+
 
 
     public Catalog() {
@@ -66,6 +73,72 @@ public class Catalog {
         }
         System.out.println("ERROR: Table does not exist.");
     }
+    public byte[] loadSchema(String path)  {
+        //load Catalog
+
+        try {
+
+            String input = Files.readString(Path.of(path));
+
+            byte[] content = input.getBytes(StandardCharsets.UTF_8);
+            for(int i = 0; i < content.length ; i++) {
+                System.out.print(content[i] +" ");
+            }
+
+            byte[] table = new byte[4];
+            for (int i = 0; i < 4; i++) {
+                table[i] = content[i];
+            }
+            int tableNum = Integer.parseInt(new String(table));
+
+
+
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
+
+
+        return null;
+    }
+
+
+    public boolean writeTabletoCatalog (String s) {
+        String input = "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)";
+        String[] table = input.split("[\\s,]+");
+        StringBuilder content = new StringBuilder();
+
+        //remove the ( after tableName and ) at end
+        table[2] = table[2].split("\\(")[0];
+        table[table.length-1] = table[table.length-1].split("\\)")[0];
+
+        //totalsize of byte[]
+        int totalsizeByteArr = 0;
+
+        //get table name and size
+        byte[] tableName = table[2].getBytes(StandardCharsets.UTF_8);
+        int tableNameSize = tableName.length;
+        byte[] nameSize = ByteBuffer.allocate(4).putInt(tableNameSize).array();
+        totalsizeByteArr = totalsizeByteArr + 4;
+        totalsizeByteArr = totalsizeByteArr + tableNameSize;
+        content.append(Arrays.toString(nameSize));
+        content.append(Arrays.toString(tableName));
+
+        System.out.println(content.toString());
+
+        int attrNum = (table.length - 3 - 1)/2;
+        byte[] attributeNum = ByteBuffer.allocate(4).putInt(attrNum).array();
+
+        // table: name varchar(15) studentID integer primarykey address char(20) gpa double incampus boolean
+        for (int i = 3; i < table.length; i++) {
+
+        }
+
+
+        return false;
+    }
+
+
+
 
 
 }

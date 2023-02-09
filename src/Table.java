@@ -1,11 +1,13 @@
 import java.util.ArrayList;
 
+//This is table page
 public class Table {
     String tableName;
     private String primaryKeyName;
     private ArrayList<String> attriName_list = new ArrayList<>();
     private ArrayList<String> attriType_list = new ArrayList<>();
     private ArrayList<Record> record_list = new ArrayList<>();
+    private ArrayList<Page> pages_list = new ArrayList<>();
 
     private ArrayList<Page> page_list = new ArrayList<>();
 
@@ -17,6 +19,8 @@ public class Table {
         this.page_list = page_list;
         this.tableName = tableName;
     }
+    
+    
 
     public Record getRecordByPrimaryKey(String primaryKeyName) {
         return null;
@@ -26,7 +30,7 @@ public class Table {
         return record_list;
     }
 
-    public boolean insertRecord(Record record) {
+    public boolean insertRecordToTable(Record record) {
         return false;
     }
 

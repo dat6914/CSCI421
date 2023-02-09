@@ -62,6 +62,8 @@ public class Main {
 
     }
 
+
+
     public static void createTable(String tableName, String tuples) {
 
     }
