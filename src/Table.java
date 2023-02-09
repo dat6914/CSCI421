@@ -1,11 +1,14 @@
 import java.util.ArrayList;
 
 public class Table {
-    private String tableName;
+    String tableName;
     private String primaryKeyName;
     private ArrayList<String> attriName_list = new ArrayList<>();
     private ArrayList<String> attriType_list = new ArrayList<>();
     private ArrayList<Record> record_list = new ArrayList<>();
+
+    public Table(String tableName, String primaryKeyName, ArrayList<String> attriNameList, ArrayList<String> attriTypeList) {
+    }
 
     public Record getRecordByPrimaryKey(String primaryKeyName) {
         return null;

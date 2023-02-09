@@ -8,5 +8,38 @@ public class Catalog {
 
     }
 
+    public void createTable(String tableName, String primaryKeyName, ArrayList<String> attriName_list, ArrayList<String> attriType_list) {
+        // check if the table already exists
+        for (Table table : tables_list) {
+            if (table.tableName.equals(tableName)) {
+                System.out.println("ERROR: Table already exists.");
+                return;
+            }
+        }
+
+        //check if primary key is in the list of attributes
+        boolean isPrimaryKeyInAttriList = false;
+        for (String attriName : attriName_list) {
+            if (attriName.equals(primaryKeyName)) {
+                isPrimaryKeyInAttriList = true;
+                break;
+            }
+        }
+
+        //check if elements in attriName_list are unique, case-insensitive
+        for (int i = 0; i < attriName_list.size(); i++) {
+            for (int j = i + 1; j < attriName_list.size(); j++) {
+                if (attriName_list.get(i).equalsIgnoreCase(attriName_list.get(j))) {
+                    System.out.println("ERROR: Attribute names are not unique.");
+                    return;
+                }
+            }
+        }
+
+        Table table = new Table(tableName, primaryKeyName, attriName_list, attriType_list);
+
+        tables_list.add(table);
+    }
+
 
 }
