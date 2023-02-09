@@ -29,7 +29,7 @@ public class Main {
 
         StorageManager storageManager = new StorageManager(db_loc, page_size, buffer_size);
 
-        Database database = null;
+        Database database = new Database(db_loc, page_size, buffer_size);
 
         System.out.println("Database now running...");
         System.out.println("Please enter commands, enter <quit> to shutdown the db.");
@@ -82,10 +82,7 @@ public class Main {
     }
 
     public static void displaySchema() {
-        System.out.println("Database location: " );
-        System.out.println("Page size: ");
-        System.out.println("Buffer size: ");
-        System.out.println("Table schema: ");
+        Database.database.displaySchema();
     }
 
     public static void quitProgram() {
@@ -95,7 +92,7 @@ public class Main {
 
     public static void displayCommand() {
         System.out.println("----------------------------------------------");
-        System.out.println("Storage Manager!");
+        System.out.println("Storage Manager!\n");
         System.out.println("List of commands:");
         System.out.println("    display schema");
         System.out.println("    display info <name>");
