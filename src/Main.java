@@ -19,7 +19,7 @@ public class Main {
         File directory = new File(String.valueOf(db_loc));
         System.out.println("Searching for database at " + db_loc + "...");
         if (!directory.exists()) {
-            System.out.println("Database does not exist. Creating a new database at" + db_loc + "...");
+            System.out.println("Database does not exist. Creating a new database at " + db_loc + "...");
             directory.mkdir();
         } else {
             System.out.println("Database exists.");
@@ -31,7 +31,8 @@ public class Main {
 
         Database database = null;
 
-        System.out.println("Database is available now!");
+        System.out.println("Database now running...");
+        System.out.println("Please enter commands, enter <quit> to shutdown the db.");
 
         while(true) {
             displayCommand();
