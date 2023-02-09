@@ -1,12 +1,22 @@
 import java.util.ArrayList;
 
 public class Catalog {
+
     ArrayList<Table> tables_list = new ArrayList<>();
 
 
     public Catalog() {
 
     }
+
+
+    /*
+     * Most of these functions are gonna be used by the query processor and since this is the catalog class,
+     * make sure we're not touching ANY DATA HERE. Data has to be stored in binary on hardware and must be saved between runs.
+     */
+
+
+
 
     public void createTable(String tableName, String primaryKeyName, ArrayList<String> attriName_list, ArrayList<String> attriType_list) {
         // check if the table already exists
@@ -50,7 +60,7 @@ public class Catalog {
                 System.out.println("Pages: " + table.getPage_list().size());
                 System.out.println("Records: " + table.getRecord_list().size());
 
-                System.out.println("\nSUCCESS");
+                System.out.println("\nSUCCESS\n");
                 return;
             }
         }
