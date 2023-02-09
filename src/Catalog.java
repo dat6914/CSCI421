@@ -49,6 +49,8 @@ public class Catalog {
                 System.out.println("Table schema: " + table.getSchema());
                 System.out.println("Pages: " + table.getPage_list().size());
                 System.out.println("Records: " + table.getRecord_list().size());
+
+                System.out.println("\nSUCCESS");
                 return;
             }
         }
