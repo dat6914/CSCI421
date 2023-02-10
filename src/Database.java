@@ -17,8 +17,6 @@ public class Database {
         this.page_size = page_size;
         this.buffer_size = buffer_size;
 
-
-
     }
 
     public static Database getConnection(String db_loc, int page_size, int buffer_size) {
@@ -50,7 +48,7 @@ public class Database {
         System.out.println("Tables: \n");
 
         for (Table table : catalog.tables_list) {
-            catalog.displayTableInfo(table.tableName);
+            catalog.displayTableInfo(table.getTableName());
         }
 
         System.out.println("\nSUCCESS\n");

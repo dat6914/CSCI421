@@ -2,7 +2,7 @@ import java.util.ArrayList;
 
 //This is table page
 public class Table {
-    String tableName;
+    private String tableName;
     private String primaryKeyName;
     private ArrayList<String> attriName_list = new ArrayList<>();
     private ArrayList<String> attriType_list = new ArrayList<>();
@@ -72,4 +72,23 @@ public class Table {
     public ArrayList<Page> getPage_list() {
         return page_list;
     }
+
+    public String getTableName() {
+        return tableName;
+    }
+
+    public ArrayList<String> getAttriName_list() {
+        return attriName_list;
+    }
+
+    public ArrayList<String> getAttriType_list() {
+        return attriType_list;
+    }
+
+    public String getPrimaryKeyName() {
+        return primaryKeyName;
+    }
+
+
+
 }
