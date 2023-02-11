@@ -44,7 +44,7 @@ public class Catalog {
         if (tempFile.exists()) {
             try (FileWriter f = new FileWriter(path, true);
                     BufferedWriter b = new BufferedWriter(f);
-                    PrintWriter p = new PrintWriter(b);) {
+                    PrintWriter p = new PrintWriter(b)) {
 
                 p.println(data);
 
@@ -71,13 +71,13 @@ public class Catalog {
         return null;
     }
 
-    //Given a input string:
+    // Given a input string:
     //  "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
-    //check all the possible error and then parse the string to Table Object
-    //I did NOT add the table to the table list yet
-    public Table createTable (String input) throws IOException {
+    // check all the possible error and then parse the string to Table Object
+    // I did NOT add the table to the table list yet //TODO will add when the user enter command <quit>
+    public Table createTable (String input) {
 
-        String[] dataTypeList = {"integer", "double", "char", "varchar", "boolean", "primarykey"};
+        String[] dataTypeList = {"integer", "double", "char(", "varchar(", "boolean", "primarykey"};
 
         //String input = "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)";
         String[] table = input.split("[\\s,]+");
@@ -150,10 +150,40 @@ public class Catalog {
                 attriNameList.add(inStr);
 
             } else {
+                //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
+                //  enum: {primary 0 1}
                 if (inStr.equalsIgnoreCase("primarykey")){
                     primarykeyName = table[i-2];
-                } else {
-                    attriTypeList.add(inStr);
+                } else if (inStr.equalsIgnoreCase("boolean")) {
+                    attriTypeList.add("20");
+                } else if (inStr.equalsIgnoreCase("integer")) {
+                    attriTypeList.add("30");
+                } else if (inStr.equalsIgnoreCase("double")) {
+                    attriTypeList.add("40");
+                } else if (inStr.length()>6 && inStr.length() <= 9) {
+                    if (inStr.substring(0, 5).equalsIgnoreCase("char(") &&
+                            inStr.substring(inStr.length() - 1).equalsIgnoreCase(")") &&
+                            inStr.substring(5, inStr.length() - 1).matches("[0-9]+")) {
+                        StringBuilder temp = new StringBuilder();
+                        temp.append("5");
+                        String typeSize = inStr.substring(5, inStr.length() - 1);
+                        temp.append(typeSize);
+                        attriTypeList.add(temp.toString());
+                    } else {
+                        attriNameList.add(inStr);
+                    }
+                } else if (inStr.length() > 9) {
+                    if (inStr.substring(0, 8).equalsIgnoreCase("varchar(") &&
+                            inStr.substring(inStr.length() - 1).equalsIgnoreCase(")") &&
+                            inStr.substring(8, inStr.length() - 1).matches("[0-9]+")) {
+                        StringBuilder temp1 = new StringBuilder();
+                        temp1.append("6");
+                        String typeSize1 = inStr.substring(8, inStr.length() - 1);
+                        temp1.append(typeSize1);
+                        attriTypeList.add(temp1.toString());
+                    } else {
+                        attriNameList.add(inStr);
+                    }
                 }
             }
         }
@@ -173,56 +203,101 @@ public class Catalog {
         return newTable;
     }
 
-    //FORMAT: student name varchar(15) studentID integer primarykey address char(20) gpa double incampus boolean
-    // Byte[]:  first 4 bytes for the size of whole string HERE: 139
+    // FORMAT: student name varchar(15) studentID integer primarykey address char(20) gpa double incampus boolean
+    // Byte[]:  first 4 bytes for the size of whole string HERE: X  = 130   TOTAL : 130 + 4
     //          next 4 bytes store the size of tableName HERE: 7
     //          next 7 bytes store "student"
     //          next 4 bytes store the number of attributes HERE: 5
-    //          next 4 bytes store the size of name of 1st attribute HERE: 4
-    //          next 4 bytes store "name"
-    //          next 4 bytes store the size attri type of 1st attr HERE: 11
-    //          next 11 bytes store "varchar(15)"
-    //          next 4 bytes store the size of name of 2nd attr HERE: 9
-    //          next 9 bytes store "studentID"
-    //          ....
-    //  Total size of this table is : 139 + 4 = 143
+    //      ------------------------------------------------------------
+    //          next 4 bytes store the size of name of A1 HERE: 4
+    //          next 4 bytes store A1 Name HERE: "name"
+    //          next 4 bytes store A1 type HERE: 6  because "varchar(15)" = 6 by setup
+    //          next 4 bytes store A1 type size HERE: 15 because it is a 6 and 15 varchar
+    //          next 4 bytes store 1 if a primarykey and 0 if not HERE: 0
+    //      -------------------------------------------------------------------
+    //          next 4 bytes store the size of name of A2 HERE: 9
+    //          next 9 bytes store A2 Name HERE: "studentID"
+    //          next 4 bytes store A2 type HERE: 3  because "integer" = 3 by setup
+    //          next 4 bytes store A2 type size HERE: 0 because it is a 3 and has no size
+    //          next 4 bytes store 1 if a primarykey and 0 if not HERE: 1
+    //      -------------------------------------------------------------------
+    //          next 4 bytes store the size of name of A3 HERE: 7
+    //          next 7 bytes store A3 Name HERE: "address"
+    //          next 4 bytes store A3 type HERE: 5  because "char(20)" = 5 by setup
+    //          next 4 bytes store A3 type size HERE: 20 because it is a 5 and 20 char
+    //          next 4 bytes store 1 if a primarykey and 0 if not HERE: 0
+    //      -------------------------------------------------------------------
+    //          next 4 bytes store the size of name of A4 HERE: 3
+    //          next 3 bytes store A4 Name HERE: "gpa"
+    //          next 4 bytes store A4 type HERE: 4  because "double" = 4 by setup
+    //          next 4 bytes store A4 type size HERE: 0 because it is a 4 and has no sise
+    //          next 4 bytes store 1 if a primarykey and 0 if not HERE: 0
+    //      -------------------------------------------------------------------
+    //          next 4 bytes store the size of name of A5 HERE: 8
+    //          next 8 bytes store A5 Name HERE: "incampus"
+    //          next 4 bytes store A5 type HERE: 2  because "boolean" = 2 by setup
+    //          next 4 bytes store A5 type size HERE: 0 because it is a 2 and has no size
+    //          next 4 bytes store 1 if a primarykey and 0 if not HERE: 0
+    //     ----------------------------------------------------------------------
+    //  Total size of this table is : 19 + 20 + 25 + 23 + 19 + 24 = 130
+
+    //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
+    //  enum: {primary 0 1}
+
     public byte[] convertTableToByteArr (Table table) {
 
         ByteBuffer result = ByteBuffer.allocate(0);
+        // encoding the tableName
         int tableNameSize = table.getTableName().length();
         byte[] tempNameSize = ByteBuffer.allocate(4).putInt(tableNameSize).array();
         byte[] tableNameArr = table.getTableName().getBytes(StandardCharsets.UTF_8);
-
         result = appendByteBuffer(result, tempNameSize);
         result = appendByteBuffer(result, tableNameArr);
-
+        // encoding the number of attributes
         int numberAttriName = table.getAttriName_list().size();
         byte[] numAttriName = ByteBuffer.allocate(4).putInt(numberAttriName).array();
         result = appendByteBuffer(result, numAttriName);
-
-        for (int i = 0; i < table.getAttriName_list().size(); i++) {
-
+        // encoding each of attributes: attributeName and attributesType
+        for (int i = 0; i < numberAttriName; i++) {
+            // attributeName
             int attriNameSize = table.getAttriName_list().get(i).length();
             byte[] attriNameSizeArr = ByteBuffer.allocate(4).putInt(attriNameSize).array();
             byte[] attriNameArr = table.getAttriName_list().get(i).getBytes(StandardCharsets.UTF_8);
             result = appendByteBuffer(result, attriNameSizeArr);
             result = appendByteBuffer(result, attriNameArr);
 
-            int attriTypeSize = table.getAttriType_list().get(i).length();
-            byte[] attriTypeSizeArr = ByteBuffer.allocate(4).putInt(attriTypeSize).array();
-            byte[] attriTypeArr = table.getAttriType_list().get(i).getBytes(StandardCharsets.UTF_8);
-            result = appendByteBuffer(result, attriTypeSizeArr);
-            result = appendByteBuffer(result, attriTypeArr);
+            // attributeType
+            char firstChar = table.getAttrType(i).charAt(0);
+            int attriType = Integer.parseInt(String.valueOf(firstChar));
+            byte[] attriTypeArr = ByteBuffer.allocate(4).putInt(attriType).array();
+            result = appendByteBuffer(result,attriTypeArr);
 
-            if (table.getPrimaryKeyName().equals(table.getAttriName_list().get(i))) {
-                int primarykeySize = "primarykey".length();
-                byte[] primarkeySizeArr = ByteBuffer.allocate(4).putInt(primarykeySize).array();
-                byte[] primarykeyArr = "primarykey".getBytes(StandardCharsets.UTF_8);
-                result = appendByteBuffer(result, primarkeySizeArr);
-                result = appendByteBuffer(result, primarykeyArr);
+            int tempForTypeSize = 0;
+            if (attriType == 2 || attriType == 3 || attriType == 4) {
+                tempForTypeSize = 0;
+            } else {
+                String typeSize = table.getAttrType(i).substring(1);
+                try{
+                    tempForTypeSize = Integer.parseInt(typeSize);
+                }
+                catch (NumberFormatException ex){
+                    System.err.println("Something is wrong in Table");
+                    ex.printStackTrace();
+                    System.err.println("ERROR");
+                }
             }
+            byte[] attriTypeSizeArr = ByteBuffer.allocate(4).putInt(tempForTypeSize).array();
+            result = appendByteBuffer(result, attriTypeSizeArr);
+
+            int primary = 0;
+            if (table.getPrimaryKeyName().equals(table.getAttriName_list().get(i))) {
+                primary = 1;
+            }
+            byte[] primarkeyArr = ByteBuffer.allocate(4).putInt(primary).array();
+            result = appendByteBuffer(result, primarkeyArr);
         }
 
+        // endcode the total size of table
         int resultSize = result.array().length;
         ByteBuffer temp = ByteBuffer.allocate(4).putInt(resultSize);
         result = appendByteBuffer(temp, result.array());
@@ -240,8 +315,9 @@ public class Catalog {
 
     //FORMAT: student name varchar(15) studentID integer primarykey address char(20) gpa double incampus boolean
     public Table convertByteArrToTable(byte[] tableArr) {
+
         ByteBuffer result = ByteBuffer.wrap(tableArr);
-        int tableSize = result.getInt(0);
+        // get 4 bytes of tableName size
         int tableNameSize = result.getInt(4);
         byte[] tableNameArr = Arrays.copyOfRange(tableArr, 8, tableNameSize+8);
 
@@ -251,45 +327,52 @@ public class Catalog {
         ArrayList<String> attriNameList = new ArrayList<>();
         ArrayList<String> attriTypeList = new ArrayList<>();
 
+        // get next 4 bytes for the number of attributes
         byte[] numberAttributes = Arrays.copyOfRange(tableArr, 8+tableNameSize, 8+tableNameSize+4);
         int attributeNum = ByteBuffer.wrap(numberAttributes).getInt();
 
+        // get all the attributes
         int indexTracking = 8+tableNameSize+4;
-        for (int i = 0; i < attributeNum*2+1; i++) {
-            byte[] attriArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking+4);
-            int attriSize = ByteBuffer.wrap(attriArr).getInt();
+        for (int i = 0; i < attributeNum; i++) {
+            // get next 4 bytes for the attribute name size
+            byte[] attriNameSizeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking+4);
+            int attriNameSize = ByteBuffer.wrap(attriNameSizeArr).getInt();
             indexTracking = indexTracking+4;
-            byte[] attriName = Arrays.copyOfRange(tableArr, indexTracking, indexTracking+attriSize);
-            indexTracking = indexTracking + attriSize;
-            String temp = new String(attriName, StandardCharsets.UTF_8);
-            if (temp.equalsIgnoreCase("primarykey")) {
-                String primarykey = attriNameList.get(attriNameList.size()-1);
-                primarykeyName = primarykey;
-            } else if (temp.equalsIgnoreCase("integer")) {
-                attriTypeList.add("integer");
-            } else if (temp.equalsIgnoreCase("double")) {
-                attriTypeList.add("double");
-            } else if (temp.equalsIgnoreCase("boolean")) {
-                attriTypeList.add("boolean");
-            } else if (temp.length()>6 && temp.length() <= 9) {
-                if (temp.substring(0, 5).equalsIgnoreCase("char(") &&
-                        temp.substring(temp.length() - 1).equalsIgnoreCase(")") &&
-                        temp.substring(5, temp.length() - 1).matches("[0-9]+")) {
-                    attriTypeList.add(temp);
-                } else {
-                    attriNameList.add(temp);
-                }
-            } else if (temp.length() > 9) {
-                if (temp.substring(0,8).equalsIgnoreCase("varchar(") &&
-                        temp.substring(temp.length()-1).equalsIgnoreCase(")") &&
-                        temp.substring(8, temp.length()-1).matches("[0-9]+")) {
-                    attriTypeList.add(temp);
-                } else {
-                    attriNameList.add(temp);
-                }
-            } else {
-                attriNameList.add(temp);
+
+            // get the next attriNameSize for the name of attribute and add to the attribute name list
+            byte[] attriNameArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking+attriNameSize);
+            indexTracking = indexTracking + attriNameSize;
+            String attrName = new String(attriNameArr, StandardCharsets.UTF_8);
+            attriNameList.add(attrName);
+
+            // now for attribute type
+            StringBuilder attriTypeStrBuilder = new StringBuilder();
+            // get next 4 bytes for attribute type. It will follow the hard set up:
+            //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
+            byte[] attriTypeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking+4);
+            int attriType = ByteBuffer.wrap(attriTypeArr).getInt();
+            indexTracking = indexTracking+4;
+            attriTypeStrBuilder.append(attriType);
+
+            // get next 4 bytes for attribute type size.
+            // by setup, 0 if integer, boolean, or double, and the size for varchar and char
+            byte[] attriTypeSizeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking+4);
+            int attriTypeSize = ByteBuffer.wrap(attriTypeSizeArr).getInt();
+            indexTracking = indexTracking+4;
+            attriTypeStrBuilder.append(attriTypeSize);
+
+            // get next 4 bytes for primary key by hard setup:
+            //  enum: {primary 0 1}
+            byte[] primarykey = Arrays.copyOfRange(tableArr, indexTracking, indexTracking+4);
+            int primaryNum = ByteBuffer.wrap(primarykey).getInt();
+            indexTracking = indexTracking+4;
+            if (primaryNum == 1) {
+                primarykeyName = attriNameList.get(attriNameList.size()-1);
             }
+
+            // only add the attribute type (first digit) and the size of attribute type (from the 2nd digit)
+            attriTypeList.add(attriTypeStrBuilder.toString());
+
         }
 
         if (attriNameList.size() != attriTypeList.size()) {
