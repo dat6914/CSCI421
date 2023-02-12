@@ -33,8 +33,4 @@ public class Page {
         return sum;
     }
 
-    public static void main(){
-        System.out.println("test push to repo");
-    }
-
 }
