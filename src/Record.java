@@ -16,4 +16,7 @@ public class Record {
       public static void start(){
             System.out.println("Hello");
       }
+      public void size(){
+            System.out.println("size = 0");
+      }
 }
