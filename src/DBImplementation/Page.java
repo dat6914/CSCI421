@@ -5,14 +5,33 @@ import java.util.*;
 import DBImplementation.Record;
 
 public class Page {
+    // Current Page Size
     private int CurrentSize;
-
+    // Current Page ID
     private int PageID;
-    private Record records;
 
-    private ArrayList<String> Record_PrimaryKey = new ArrayList<>();
+    private ArrayList<String> PrimaryKey = new ArrayList<>();
 
-    private  Map<String,Record> RecordObj = new HashMap<>();
+    // Record objects
+    private Map<String,Record> RecordObj = new HashMap<>();
+
+    // page Constructor
+    public Page(int CurrentSize, int PageID, ArrayList<String> PrimaryKey,Map<String,Record> RecordObj){
+        this.CurrentSize = CurrentSize;
+        this.PageID = PageID;
+        this.PrimaryKey = PrimaryKey;
+        this.RecordObj = RecordObj;
+
+    }
+
+    // gets the sum of all the records in this page
+    public int getCurrentSize(){
+        int sum = 0;
+        for (Record records : RecordObj.values()){
+            sum += records.getSize();
+        }
+        return sum;
+    }
 
     public static void main(){
         System.out.println("test push to repo");
