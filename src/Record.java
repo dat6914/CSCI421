@@ -5,6 +5,12 @@ public class Record {
       private String primaryKey;
       private int size;
 
+      public Record(String primaryKey,ArrayList<Object> values_list, int size){
+            this.primaryKey = primaryKey;
+            this.values_list = values_list;
+            this.size = size;
+      }
+
       public Object getObject(int i) {
             return values_list.get(i);
       }
@@ -14,4 +20,6 @@ public class Record {
       }
 
       public int getSize(){return this.size;}
+
+      public String getPrimaryKey(){return this.primaryKey;}
 }
