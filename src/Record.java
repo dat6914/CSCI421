@@ -12,4 +12,6 @@ public class Record {
       public static byte[] convertRecordTextToBinary() {
             return null;
       }
+
+      public int getSize(){return this.size;}
 }
