@@ -1,18 +1,31 @@
+package DBImplementation;
+
 import java.util.ArrayList;
 
 public class Table {
     private String tableName;
     private String primaryKeyName;
     private ArrayList<String> attriName_list = new ArrayList<>();
-    private ArrayList<String> attriType_list = new ArrayList<>();
-    private ArrayList<Record> record_list = new ArrayList<>();
+    private ArrayList<Page> page_list = new ArrayList<>();
+
+    public Table(String tableName,String primaryKeyName, ArrayList<String> attriName_list){
+        this.tableName = tableName;
+        this.primaryKeyName = primaryKeyName;
+        this.attriName_list = attriName_list;
+    }
+
+
 
     public Record getRecordByPrimaryKey(String primaryKeyName) {
         return null;
     }
 
-    public ArrayList<Record> getRecord_list() {
-        return record_list;
+    public String getTableName(){
+        return tableName;
+    }
+
+    public ArrayList<Page> getPage_list() {
+        return page_list;
     }
 
     public boolean insertRecord(Record record) {
@@ -46,8 +59,5 @@ public class Table {
         return null;
     }
 
-    public String getAttrType(int index) {
-        return attriType_list.get(index);
-    }
 
 }
