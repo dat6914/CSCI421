@@ -40,7 +40,7 @@ public class Main {
             String input = scanner.nextLine();
             String[] optionArr = input.split(" ");
             if (input.equals("display schema")) {
-                displaySchema();
+                displaySchema(db_loc, page_size, buffer_size);
             } else if (input.equals("<quit>")) {
                 quitProgram();
                 break;
@@ -51,7 +51,7 @@ public class Main {
                 insertTuplesIntoTable(optionArr[2], optionArr[4]);
             } else if (optionArr[0].equals("select") && optionArr[1].equals("*") && optionArr[2].equals("from") && optionArr.length == 4) {
                 selectRecordsFromTable(optionArr[3]);
-            } else if (optionArr[0].equals("create") && optionArr[1].equals("tables") && optionArr.length > 3) {
+            } else if (optionArr[0].equals("create") && optionArr[1].equals("table") && optionArr.length > 3) {
                 //Tuple = parse string
                 createTable(optionArr[2], optionArr[3]);
             } else {
@@ -75,37 +75,43 @@ public class Main {
     }
 
     public static void displayInfo(String tableName) {
-        System.out.println("Table name: ");
+        System.out.println("Table name: " + tableName);
         System.out.println("Table schema: ");
         System.out.println("Number of pages: ");
         System.out.println("Number of records: ");
     }
 
-    public static void displaySchema() {
-        System.out.println("Database location: " );
-        System.out.println("Page size: ");
-        System.out.println("Buffer size: ");
-        System.out.println("Table schema: ");
+    public static void displaySchema(String location, int pageSize, int bufferSize) {
+        System.out.println("DB location: " + location);
+        System.out.println("Page size: " + pageSize);
+        System.out.println("Buffer size: " + bufferSize);
+        System.out.println("\n ");
+        //todo: create function for checking for table detail that will take the param of location
+        //todo: check if it's successful
     }
 
     public static void quitProgram() {
         //terminate the database
-        System.out.println("Quit program safely!");
+        //todo: call pagebuffer to write pages to hardware before shut down
+        //todo: catalog to save all data
+        System.out.println("Safely shutting down the database...");
+        System.out.println("Purging page buffer...");
+        System.out.println("Saving catalog...");
     }
 
     public static void displayCommand() {
         System.out.println("----------------------------------------------");
         System.out.println("Storage Manager!");
         System.out.println("List of commands:");
-        System.out.println("    display schema");
-        System.out.println("    display info <name>");
-        System.out.println("    select * from <name>");
-        System.out.println("    insert into <name> values <tuples>");
-        System.out.println("    create table <name> (");
-        System.out.println("        <attr_name1> <attr_type1> primarykey,");
-        System.out.println("        <attr_name2> <attr_type2>,...");
-        System.out.println("        <attr_nameN> <attr_typeN>  );");
-        System.out.println("    quit program");
+        System.out.println("    1. display schema");
+        System.out.println("    2. display info <name>");
+        System.out.println("    3. select * from <name>");
+        System.out.println("    4. insert into <name> values <tuples>");
+        System.out.println("    5. create table <name>(");
+        System.out.println("          <attr_name1> <attr_type1> primarykey,");
+        System.out.println("          <attr_name2> <attr_type2>,...");
+        System.out.println("          <attr_nameN> <attr_typeN>);");
+        System.out.println("    6. <quit>");
 
     }
 }
