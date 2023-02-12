@@ -1,5 +1,6 @@
+package DBImplementation;
+
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Main {
@@ -19,19 +20,19 @@ public class Main {
         File directory = new File(String.valueOf(db_loc));
         System.out.println("Searching for database at " + db_loc + "...");
         if (!directory.exists()) {
-            System.out.println("Database does not exist. Creating a new database at " + db_loc + "...");
+            System.out.println("DBImplementation.Database does not exist. Creating a new database at " + db_loc + "...");
             directory.mkdir();
         } else {
-            System.out.println("Database exists.");
+            System.out.println("DBImplementation.Database exists.");
         }
-        System.out.println("Page Size: " + page_size);
+        System.out.println("DBImplementation.Page Size: " + page_size);
         System.out.println("Buffer Size: " + buffer_size);
 
         StorageManager storageManager = new StorageManager(db_loc, page_size, buffer_size);
 
         Database database = null;
 
-        System.out.println("Database now running...");
+        System.out.println("DBImplementation.Database now running...");
         System.out.println("Please enter commands, enter <quit> to shutdown the db.");
 
         while(true) {
@@ -75,17 +76,17 @@ public class Main {
     }
 
     public static void displayInfo(String tableName) {
-        System.out.println("Table name: ");
-        System.out.println("Table schema: ");
+        System.out.println("DBImplementation.Table name: ");
+        System.out.println("DBImplementation.Table schema: ");
         System.out.println("Number of pages: ");
         System.out.println("Number of records: ");
     }
 
     public static void displaySchema() {
-        System.out.println("Database location: " );
-        System.out.println("Page size: ");
+        System.out.println("DBImplementation.Database location: " );
+        System.out.println("DBImplementation.Page size: ");
         System.out.println("Buffer size: ");
-        System.out.println("Table schema: ");
+        System.out.println("DBImplementation.Table schema: ");
     }
 
     public static void quitProgram() {
