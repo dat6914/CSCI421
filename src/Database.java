@@ -12,7 +12,7 @@ public class Database {
 
     public Database(String db_loc, int page_size, int buffer_size) {
         this.storageManager = new StorageManager(db_loc, page_size, buffer_size);
-        this.catalog = new Catalog();
+        //this.catalog = new Catalog();
         this.db_loc = db_loc;
         this.page_size = page_size;
         this.buffer_size = buffer_size;
@@ -41,16 +41,16 @@ public class Database {
      * Tables:
      * (Same as displayTableInfo but for all tables in the catalog
      */
-    public void displaySchema(){
-        System.out.println("DB location: " + this.db_loc);
-        System.out.println("Page size: " + this.page_size);
-        System.out.println("Buffer size: " + this.buffer_size);
-        System.out.println("Tables: \n");
-
-        for (Table table : catalog.tables_list) {
-            catalog.displayTableInfo(table.getTableName());
-        }
-
-        System.out.println("\nSUCCESS\n");
-    }
+//    public void displaySchema(){
+//        System.out.println("DB location: " + this.db_loc);
+//        System.out.println("Page size: " + this.page_size);
+//        System.out.println("Buffer size: " + this.buffer_size);
+//        System.out.println("Tables: \n");
+//
+//        for (Table table : catalog.getTablesList()) {
+//            catalog.displayTableInfo(table.getTableName());
+//        }
+//
+//        System.out.println("\nSUCCESS\n");
+//    }
 }

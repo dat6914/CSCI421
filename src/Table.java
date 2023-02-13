@@ -1,33 +1,91 @@
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 //This is table page
 public class Table {
     private String tableName;
     private String primaryKeyName;
-    private ArrayList<String> attriName_list = new ArrayList<>();
-    private ArrayList<String> attriType_list = new ArrayList<>();
-    private ArrayList<Record> record_list = new ArrayList<>();
-    private ArrayList<Page> pages_list = new ArrayList<>();
-
-    private ArrayList<Page> page_list = new ArrayList<>();
+    private ArrayList<String> attriName_list;
+    private ArrayList<String> attriType_list;
+    private ArrayList<Integer> pageID_list = new ArrayList<>();
+    private int recordNum = 0;
 
     public Table(String tableName, String primaryKeyName, ArrayList<String> attriNameList, ArrayList<String> attriTypeList) {
         this.tableName = tableName;
         this.primaryKeyName = primaryKeyName;
         this.attriName_list = attriNameList;
         this.attriType_list = attriTypeList;
-        this.page_list = page_list;
-        this.tableName = tableName;
     }
-    
-    
+
+    /**
+     * Method gets pageID list
+     * @return arraylist of pageID
+     */
+    public ArrayList<Integer> getPageID_list() {
+        return pageID_list;
+    }
+
+    /**
+     * Method gets an attribute type at an given index
+     * @param index index of attribute type
+     * @return attribute type
+     */
+    public String getAttrType(int index) {
+        return attriType_list.get(index);
+    }
+
+    /**
+     * Method gets table name
+     * @return tableName
+     */
+    public String getTableName() {
+        return tableName;
+    }
+
+    /**
+     * Method gets arraylist of attribute names
+     * @return arraylist of attribute names
+     */
+    public ArrayList<String> getAttriName_list() {
+        return attriName_list;
+    }
+
+    /**
+     * Method gets arraylist of attribute types
+     * @return arraylist of attribute types
+     */
+    public ArrayList<String> getAttriType_list() {
+        return attriType_list;
+    }
+
+    /**
+     * Method gets Name of primarykey
+     * @return Name of primarykey
+     */
+    public String getPrimaryKeyName() {
+        return primaryKeyName;
+    }
+
+    /**
+     * Method gets number of records
+     * @return number of records
+     */
+    public int getRecordNum() {
+        return recordNum;
+    }
 
     public Record getRecordByPrimaryKey(String primaryKeyName) {
         return null;
     }
 
-    public ArrayList<Record> getRecord_list() {
-        return record_list;
+    public Page getPageByTableAndPageNumber(String tableName, int pageID) {
+        return null;
+    }
+
+    public ArrayList<Record> getAllRecordsByTable(String tableName) {
+        return null;
     }
 
     public boolean insertRecordToTable(Record record) {
@@ -35,11 +93,12 @@ public class Table {
     }
 
     //primary key here is the value not the column name (primaryKeyName)
-    //nho di con
-    public boolean deleteRecord(String primaryKey) {
+    public boolean deleteRecord(String primaryKeyName, String tableID) {
         return false;
     }
-    public boolean updateRecord(Record record) {
+
+    //primary key here is the value not the column name (primaryKeyName)
+    public boolean updateRecord(String primaryKey, Record record) {
         return false;
     }
 
@@ -47,47 +106,6 @@ public class Table {
         return -1;
     }
 
-    //primary key here is the value not the column name (primaryKeyName)
-    //nho di con
-    public boolean updateRecord(String primaryKey, Record record) {
-        return false;
-    }
-
-    public boolean saveTableInFile(String fileName) {
-        return false;
-    }
-
-    public static Table readTable(String fileName) {
-        return null;
-    }
-
-    public String getAttrType(int index) {
-        return attriType_list.get(index);
-    }
-
-    public String getSchema() {
-        return null;
-    }
-
-    public ArrayList<Page> getPage_list() {
-        return page_list;
-    }
-
-    public String getTableName() {
-        return tableName;
-    }
-
-    public ArrayList<String> getAttriName_list() {
-        return attriName_list;
-    }
-
-    public ArrayList<String> getAttriType_list() {
-        return attriType_list;
-    }
-
-    public String getPrimaryKeyName() {
-        return primaryKeyName;
-    }
 
 
 

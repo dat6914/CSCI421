@@ -2,19 +2,18 @@ import java.util.ArrayList;
 
 public class Page {
     private int pageID;
-    private String tableName;
-    private int page_Size;
-    private int record_number;
-    private ArrayList<Record> records_list = new ArrayList<>();
+    private ArrayList<Record> record_list = new ArrayList<>();
 
-    public Page(){
-
+    public Page(int pageID) {
+        this.pageID = pageID;
     }
 
-    public boolean insertPageToTable(int pageID) {
-        return false;
+    public ArrayList<Record> getRecord_list() {
+        return record_list;
     }
 
+    //delete a record, insert record, get record
+    //read page from disk and return Page Object
 
 
 

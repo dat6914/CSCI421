@@ -6,202 +6,332 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Catalog {
+    private ArrayList<Table> tables_list = new ArrayList<>();
+    private String DBlocation;
 
-    ArrayList<Table> tables_list = new ArrayList<>();
-
-
-
-    public Catalog() {
-
+    public Catalog(String DBlocation) {
+        this.DBlocation = DBlocation;
     }
 
-    /*
-     * Most of these functions are gonna be used by the query processor and since this is the catalog class,
-     * make sure we're not touching ANY DATA HERE. Data has to be stored in binary on hardware and must be saved between runs.
-     */
+    public ArrayList<Table> getTablesList() {
+        return tables_list;
+    }
 
+    public static byte[] readCatalogFile(String path) {
+        try {
+            File file = new File(path);
+            FileInputStream fs = new FileInputStream(file);
+            byte[] arr = new byte[(int) file.length()];
+            fs.read(arr);
+            fs.close();
+            //System.out.println("SUCCESS");
+            return arr;
+        } catch (IOException e) {
+            System.err.println("An error occurred while writing to the file.");
+            e.printStackTrace();
+            System.err.println("ERROR");
+            return null;
+        }
+    }
 
-    public void displayTableInfo(String tableName) {
-        for (Table table : tables_list) {
+    public void displaySchema(String location, int pageSize, int bufferSize) {
+        System.out.println("DB location: " + location);
+        System.out.println("Page Size: " + pageSize);
+        System.out.println("Buffer Size: " + bufferSize);
+        System.out.println("Tables: \n");
+        String catalogPath = location + "/catalog.txt";
+        byte[] catalogByteArr = readCatalogFile(catalogPath);
+
+        ArrayList<Table> tableArrayListFromCATALOGFILE = convertByteArrToCatalog(catalogByteArr);
+        if (tableArrayListFromCATALOGFILE != null) {
+            for (Table table : tableArrayListFromCATALOGFILE) {
+                System.out.println(tableToString(table));
+            }
+            System.out.println("SUCCESS");
+        } else if (tableArrayListFromCATALOGFILE.size() == 0) {
+            System.out.println("No tables to display");
+            System.out.println("SUCCESS");
+        }
+    }
+
+    //TODO check if table in schema? what about table just created recently and still not quit program yet
+    public void displayInfoTable(String tableName) {
+        String catalogPath = DBlocation + "/catalog.txt";
+        byte[] catalogByteArr = readCatalogFile(catalogPath);
+        ArrayList<Table> totalTablesList = totalTableList();
+        if (totalTablesList != null) {
+            for (Table table : totalTablesList) {
+                if (table.getTableName().equals(tableName)) {
+                    System.out.println(tableToString(table));
+                    System.out.println("SUCCESS");
+                }
+            }
+        }
+        if (totalTablesList.size() == 0) {
+            System.out.println("No such table " + tableName);
+            System.out.println("ERROR");
+        }
+    }
+
+    public ArrayList<Table> totalTableList() {
+        String catalogPath = DBlocation + "/catalog.txt";
+        byte[] catalogByteArr = readCatalogFile(catalogPath);
+        ArrayList<Table> tableFromSchema = convertByteArrToCatalog(catalogByteArr);
+        return tableFromSchema;
+    }
+
+    public Table getTableForInsert(String tableName) {
+        ArrayList<Table> tableArrayList = totalTableList();
+        for (Table table : tableArrayList) {
             if (table.getTableName().equals(tableName)) {
-                System.out.println("Table name: " + table.getTableName());
-                System.out.println("Table schema: " + table.getSchema());
-                System.out.println("Pages: " + table.getPage_list().size());
-                System.out.println("Records: " + table.getRecord_list().size());
-
-                System.out.println("\nSUCCESS\n");
-                return;
+                return table;
+            } else {
+                System.err.println("No such table " + tableName);
+                return null;
             }
         }
-        System.err.println("ERROR: Table does not exist.");
-    }
-
-    //TODO: when the command <quit> then write table to schema and then add to tablelist
-    //for now i just write directly for TESTING
-    //Think of how to store the number of tables in schema, and append table bytearray to file
-    public void saveTableToCatalogAndDisk(String path, byte[] data) {
-        File tempFile = new File(path);
-        if (tempFile.exists()) {
-            try (FileWriter f = new FileWriter(path, true);
-                    BufferedWriter b = new BufferedWriter(f);
-                    PrintWriter p = new PrintWriter(b)) {
-
-                p.println(data);
-
-            } catch (IOException i) {
-                System.err.println("An error occurred while writing to the file.");
-                i.printStackTrace();
-                System.err.println("ERROR");
-            }
-
-        } else {
-            try {
-                FileOutputStream fs = new FileOutputStream(path);
-                fs.write(data);
-                System.out.println("SUCCESS");
-            } catch (IOException e) {
-                System.err.println("An error occurred while writing to the file.");
-                e.printStackTrace();
-                System.err.println("ERROR");
-            }
-        }
-    }
-
-    public byte[] readByteArrFromCatalogFile() {
+        System.err.println("No such table " + tableName);
         return null;
     }
 
-    // Given a input string:
-    //  "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
-    // check all the possible error and then parse the string to Table Object
-    // I did NOT add the table to the table list yet //TODO will add when the user enter command <quit>
-    public Table createTable (String input) {
+    public String processSQLInput(String inp) {
+        return null;
+    }
 
-        String[] dataTypeList = {"integer", "double", "char(", "varchar(", "boolean", "primarykey"};
 
-        //String input = "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)";
-        String[] table = input.split("[\\s,]+");
+    // "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
+    // FORMAT: insert into student values ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true),("A" 1 "school" 2 false)
+    // check: many tuples in 1 sql, check duplicate primary, check how many attributes, check the type of attribute,
+    // check the length in varchar and char, check null, check if table name is exist
+    public ArrayList<Record> checkInsertRecordSQL(String inp, Table table) {
+        //String inp = "insert into student values (\"Alice\" 1234 \"43 Noel Drive Rochester\" 3.2 true) , (\"A\" 1 \"school\" 2 false)";
+        String[] separateString = inp.split("\\(|\\)");
 
-        //remove the "(" after tableName and ")" at end
-        table[2] = table[2].split("\\(")[0];
-        table[table.length-1] = table[table.length-1].split("\\)")[0];
+        String insertIntoTableValues = separateString[0];
+        String[] splitedInsertInToValues = insertIntoTableValues.split("\\s+");
 
-        //check if the input array length is a even number or not, if not then error
-        if (table.length % 2 != 0) {
-            System.err.println("Input's format is wrong! Please check again!");
-            System.err.println("ERROR");
-        }
 
-        //check if there is any primarykey or many primarykey
-        int primarykeyNum = 0;
-        for (String value : table) {
-            if (value.equalsIgnoreCase("primarykey")) {
-                primarykeyNum++;
+        //check the table name if there is a table yet
+        String tableName = splitedInsertInToValues[2];
+        ArrayList<String> attriNameList = table.getAttriName_list();
+        ArrayList<String> attriTypeList = table.getAttriType_list();
+
+        //process the string[]: remove the spaces and commas between types
+        int indexToRemove = 0;
+        for (int i = 0; i < separateString.length; i++) {
+            if (separateString[i].matches("^[ ,]+$")) {
+                indexToRemove = i;
             }
         }
-        if (primarykeyNum == 0) {
-            System.err.println("No primarykey defined!");
-            System.err.println("ERROR");
-        } else if (primarykeyNum > 1) {
-            System.err.println("Can't have multiple primarykey");
-            System.err.println("ERROR");
+        String[] newInsertSQlAfterRemove = removeElementInStringArray(separateString, indexToRemove);
+        String[] tuplesArr = removeElementInStringArray(newInsertSQlAfterRemove, 0);
+
+        for (int i = 0; i < tuplesArr.length; i++) {
+
         }
 
-        //variables for create new Table: table name, primarykeyName, attriNameList, attriTypeList
-        String nameTable = table[2];
+
+        return null;
+    }
+
+
+
+    /**
+     * Method removes element of String array
+     *
+     * @param old   the current String array
+     * @param index index of element that will be removed
+     * @return String array after remove
+     */
+    private String[] removeElementInStringArray(String[] old, int index) {
+        String[] newArray = new String[old.length - 1];
+        for (int i = 0, j = 0; i < old.length; i++) {
+            if (i != index) {
+                newArray[j++] = old[i];
+            }
+        }
+        return newArray;
+    }
+
+    //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6} AttributeType
+    //  enum: {primary 0 1}
+    public static String tableToString(Table table) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("Table Name: ");
+        stringBuilder.append(table.getTableName() + "\n");
+        stringBuilder.append("Table schema: \n");
+        ArrayList<String> attriNameList = table.getAttriName_list();
+        ArrayList<String> attriTypeList = table.getAttriType_list();
+        String primarykeyName = table.getPrimaryKeyName();
+        for (int i = 0; i < attriNameList.size(); i++) {
+            stringBuilder.append("\t");
+            stringBuilder.append(attriNameList.get(i));
+            stringBuilder.append(":");
+            char attriType = attriTypeList.get(i).charAt(0);
+            if (attriType == '2') {
+                stringBuilder.append("boolean");
+            } else if (attriType == '3') {
+                stringBuilder.append("integer");
+            } else if (attriType == '4') {
+                stringBuilder.append("double");
+            } else if (attriType == '5') {
+                stringBuilder.append("char(");
+                String temp = attriTypeList.get(i).substring(1);
+                stringBuilder.append(temp);
+                stringBuilder.append(")");
+            } else if (attriType == '6') {
+                stringBuilder.append("varchar(");
+                String temp = attriTypeList.get(i).substring(1);
+                stringBuilder.append(temp);
+                stringBuilder.append(")");
+            } else {
+                System.out.println("Something goes wrong while converting table to string!");
+                System.err.println("ERROR");
+                return null;
+            }
+            if (primarykeyName.equals(attriNameList.get(i))) {
+                stringBuilder.append(" primarykey ");
+            }
+            stringBuilder.append("\n");
+        }
+        stringBuilder.append("Pages: ");
+        stringBuilder.append(table.getPageID_list().size()).append("\n");
+        stringBuilder.append("Records: ");
+        stringBuilder.append(table.getRecordNum()).append("\n");
+
+        return stringBuilder.toString();
+    }
+
+
+    public byte[] convertCatalogToByteArr(Catalog catalog) {
+        ArrayList<Table> table_list = catalog.getTablesList();
+        int tableNum = table_list.size();
+        ByteBuffer result = ByteBuffer.allocate(0);
+        byte[] tableNumArr = ByteBuffer.allocate(4).putInt(tableNum).array();
+        result = appendByteBuffer(result, tableNumArr);
+        for (Table tbl : table_list) {
+            byte[] tableByteArr = convertTableToByteArr(tbl);
+            result = appendByteBuffer(result, tableByteArr);
+        }
+
+        return result.array();
+    }
+
+    public ArrayList<Table> convertByteArrToCatalog(byte[] catalogByteArr) {
+        ArrayList<Table> result = new ArrayList<>();
+        ByteBuffer byteBuffer = ByteBuffer.wrap(catalogByteArr);
+        int tableNum = byteBuffer.getInt(0);
+        int indexTracking = 4;
+        for (int i = 0; i < tableNum; i++) {
+            byte[] tableSizeArr = Arrays.copyOfRange(catalogByteArr, indexTracking, indexTracking + 4);
+            int tableSize = ByteBuffer.wrap(tableSizeArr).getInt();
+            indexTracking = indexTracking + 4;
+
+            byte[] attriNameArr = Arrays.copyOfRange(catalogByteArr, indexTracking, indexTracking + tableSize);
+            indexTracking = indexTracking + tableSize;
+            Table table = convertByteArrToTable(attriNameArr);
+            result.add(table);
+        }
+
+        return result;
+    }
+
+    //FORMAT: student name varchar(15) studentID integer primarykey address char(20) gpa double incampus boolean
+    public Table convertByteArrToTable(byte[] tableArr) {
+
+        ByteBuffer result = ByteBuffer.wrap(tableArr);
+        // get 4 bytes of tableName size
+        int tableNameSize = result.getInt(0);
+        byte[] tableNameArr = Arrays.copyOfRange(tableArr, 4, tableNameSize + 4);
+
+        //Variables need for create a table
+        String tableName = new String(tableNameArr, StandardCharsets.UTF_8);
         String primarykeyName = "";
         ArrayList<String> attriNameList = new ArrayList<>();
         ArrayList<String> attriTypeList = new ArrayList<>();
+        ArrayList<Integer> pageIDList = new ArrayList<>();
 
-        // check if the table already exists
-        for (Table tbl : tables_list) {
-            if (tbl.getTableName().equals(nameTable)) {
-                System.err.println("ERROR: Table already exists.");
+        // get next 4 bytes for the number of attributes
+        byte[] numberAttributes = Arrays.copyOfRange(tableArr, 4 + tableNameSize, 4 + tableNameSize + 4);
+        int attributeNum = ByteBuffer.wrap(numberAttributes).getInt();
+        int indexTracking = 4 + tableNameSize + 4;
+
+        // get all the attributes
+        for (int i = 0; i < attributeNum; i++) {
+            // get next 4 bytes for the attribute name size
+            byte[] attriNameSizeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + 4);
+            int attriNameSize = ByteBuffer.wrap(attriNameSizeArr).getInt();
+            indexTracking = indexTracking + 4;
+
+            // get the next attriNameSize for the name of attribute and add to the attribute name list
+            byte[] attriNameArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + attriNameSize);
+            indexTracking = indexTracking + attriNameSize;
+            String attrName = new String(attriNameArr, StandardCharsets.UTF_8);
+            attriNameList.add(attrName);
+
+            // now for attribute type
+            StringBuilder attriTypeStrBuilder = new StringBuilder();
+            // get next 4 bytes for attribute type. It will follow the hard set up:
+            //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
+            byte[] attriTypeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + 4);
+            int attriType = ByteBuffer.wrap(attriTypeArr).getInt();
+            indexTracking = indexTracking + 4;
+            attriTypeStrBuilder.append(attriType);
+
+            // get next 4 bytes for attribute type size.
+            // by setup, 0 if integer, boolean, or double, and the size for varchar and char
+            byte[] attriTypeSizeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + 4);
+            int attriTypeSize = ByteBuffer.wrap(attriTypeSizeArr).getInt();
+            indexTracking = indexTracking + 4;
+            attriTypeStrBuilder.append(attriTypeSize);
+
+            // get next 4 bytes for primary key by hard setup:
+            //  enum: {primary 0 1}
+            byte[] primarykey = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + 4);
+            int primaryNum = ByteBuffer.wrap(primarykey).getInt();
+            indexTracking = indexTracking + 4;
+            if (primaryNum == 1) {
+                primarykeyName = attriNameList.get(attriNameList.size() - 1);
             }
+
+            // only add the attribute type (first digit) and the size of attribute type (from the 2nd digit)
+            attriTypeList.add(attriTypeStrBuilder.toString());
+
         }
 
-        //loop through the rest of the input
-        for (int i = 3; i < table.length; i++) {
-            String inStr = table[i];
-            //check if inStr is a datatype or not
-            boolean isDatatype = false;
-            for (String datatype : dataTypeList) {
-                if (table[i].contains(datatype)) {
-                    isDatatype = true;
-                    break;
-                }
-            }
-
-            //now knowing that this string is not a datatype, check if the next element is a datatype
-            if (!isDatatype) {
-                boolean containsDatatype = false;
-                for (String datatype : dataTypeList) {
-                    if (table[i+1].contains(datatype)) {
-                        containsDatatype = true;
-                        break;
-                    }
-                }
-                //check if the next string is a datatype or not
-                if (!containsDatatype) {
-                    System.err.println("This " + table[i+1] + " is NOT a datatype!");
-                    System.err.println("ERROR");
-                }
-
-                attriNameList.add(inStr);
-
-            } else {
-                //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
-                //  enum: {primary 0 1}
-                if (inStr.equalsIgnoreCase("primarykey")){
-                    primarykeyName = table[i-2];
-                } else if (inStr.equalsIgnoreCase("boolean")) {
-                    attriTypeList.add("20");
-                } else if (inStr.equalsIgnoreCase("integer")) {
-                    attriTypeList.add("30");
-                } else if (inStr.equalsIgnoreCase("double")) {
-                    attriTypeList.add("40");
-                } else if (inStr.length()>6 && inStr.length() <= 9) {
-                    if (inStr.substring(0, 5).equalsIgnoreCase("char(") &&
-                            inStr.substring(inStr.length() - 1).equalsIgnoreCase(")") &&
-                            inStr.substring(5, inStr.length() - 1).matches("[0-9]+")) {
-                        StringBuilder temp = new StringBuilder();
-                        temp.append("5");
-                        String typeSize = inStr.substring(5, inStr.length() - 1);
-                        temp.append(typeSize);
-                        attriTypeList.add(temp.toString());
-                    } else {
-                        attriNameList.add(inStr);
-                    }
-                } else if (inStr.length() > 9) {
-                    if (inStr.substring(0, 8).equalsIgnoreCase("varchar(") &&
-                            inStr.substring(inStr.length() - 1).equalsIgnoreCase(")") &&
-                            inStr.substring(8, inStr.length() - 1).matches("[0-9]+")) {
-                        StringBuilder temp1 = new StringBuilder();
-                        temp1.append("6");
-                        String typeSize1 = inStr.substring(8, inStr.length() - 1);
-                        temp1.append(typeSize1);
-                        attriTypeList.add(temp1.toString());
-                    } else {
-                        attriNameList.add(inStr);
-                    }
-                }
-            }
+        byte[] pageNumArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + 4);
+        int numPage = ByteBuffer.wrap(pageNumArr).getInt();
+        indexTracking = indexTracking + 4;
+        for (int i = 0; i < numPage; i++) {
+            byte[] pageIDArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + 4);
+            int pageID = ByteBuffer.wrap(pageIDArr).getInt();
+            indexTracking = indexTracking + 4;
+            pageIDList.add(pageID);
         }
 
-        //check if elements in attriNameList are unique, case-insensitive
-        for (int i = 0; i < attriNameList.size(); i++) {
-            for (int j = i + 1; j < attriNameList.size(); j++) {
-                if (attriNameList.get(i).equalsIgnoreCase(attriNameList.get(j))) {
-                    System.err.println("ERROR: Attribute names are not unique.");
-                }
-            }
+        if (attriNameList.size() != attriTypeList.size()) {
+            System.err.println("Something goes wrong. Can't read the catalog file.");
+            System.err.println("ERROR");
+            return null;
         }
 
-        //adding table to table list
-        Table newTable = new Table(nameTable, primarykeyName, attriNameList, attriTypeList);
+        boolean checkPrimary = false;
+        for (String i : attriNameList) {
+            if (primarykeyName.equalsIgnoreCase(i)) {
+                checkPrimary = true;
+                break;
+            }
+        }
+        if (!checkPrimary) {
+            System.err.println("Something goes wrong. primarykey is not in the attribute list!");
+            System.err.println("ERROR");
+            return null;
+        }
 
+        Table newTable = new Table(tableName, primarykeyName, attriNameList, attriTypeList);
         return newTable;
     }
+
 
     // FORMAT: student name varchar(15) studentID integer primarykey address char(20) gpa double incampus boolean
     // Byte[]:  first 4 bytes for the size of whole string HERE: X  = 130   TOTAL : 130 + 4
@@ -243,8 +373,7 @@ public class Catalog {
 
     //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
     //  enum: {primary 0 1}
-
-    public byte[] convertTableToByteArr (Table table) {
+    public byte[] convertTableToByteArr(Table table) {
 
         ByteBuffer result = ByteBuffer.allocate(0);
         // encoding the tableName
@@ -270,20 +399,20 @@ public class Catalog {
             char firstChar = table.getAttrType(i).charAt(0);
             int attriType = Integer.parseInt(String.valueOf(firstChar));
             byte[] attriTypeArr = ByteBuffer.allocate(4).putInt(attriType).array();
-            result = appendByteBuffer(result,attriTypeArr);
+            result = appendByteBuffer(result, attriTypeArr);
 
             int tempForTypeSize = 0;
             if (attriType == 2 || attriType == 3 || attriType == 4) {
                 tempForTypeSize = 0;
             } else {
                 String typeSize = table.getAttrType(i).substring(1);
-                try{
+                try {
                     tempForTypeSize = Integer.parseInt(typeSize);
-                }
-                catch (NumberFormatException ex){
+                } catch (NumberFormatException ex) {
                     System.err.println("Something is wrong in Table");
                     ex.printStackTrace();
                     System.err.println("ERROR");
+                    return null;
                 }
             }
             byte[] attriTypeSizeArr = ByteBuffer.allocate(4).putInt(tempForTypeSize).array();
@@ -297,7 +426,17 @@ public class Catalog {
             result = appendByteBuffer(result, primarkeyArr);
         }
 
-        // endcode the total size of table
+        ArrayList<Integer> pageIDList = table.getPageID_list();
+        int numPage = pageIDList.size();
+        byte[] numPageArr = ByteBuffer.allocate(4).putInt(numPage).array();
+        result = appendByteBuffer(result, numPageArr);
+
+        for (int i = 0; i < numPage; i++) {
+            byte[] temp = ByteBuffer.allocate(4).putInt(pageIDList.get(i)).array();
+            result = appendByteBuffer(result, temp);
+        }
+
+        // get the total size of table
         int resultSize = result.array().length;
         ByteBuffer temp = ByteBuffer.allocate(4).putInt(resultSize);
         result = appendByteBuffer(temp, result.array());
@@ -306,93 +445,150 @@ public class Catalog {
 
     }
 
-    private ByteBuffer appendByteBuffer(ByteBuffer current, byte[] arr) {
+    public static ByteBuffer appendByteBuffer(ByteBuffer current, byte[] arr) {
         ByteBuffer result = ByteBuffer.allocate(current.capacity() + arr.length);
         result.put(current.array(), 0, current.array().length);
         result.put(arr, 0, arr.length);
         return result;
     }
 
-    //FORMAT: student name varchar(15) studentID integer primarykey address char(20) gpa double incampus boolean
-    public Table convertByteArrToTable(byte[] tableArr) {
 
-        ByteBuffer result = ByteBuffer.wrap(tableArr);
-        // get 4 bytes of tableName size
-        int tableNameSize = result.getInt(4);
-        byte[] tableNameArr = Arrays.copyOfRange(tableArr, 8, tableNameSize+8);
+    // Given a input string:
+    // "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
+    // check all the possible error and then parse the string to Table Object
+    // add the table to the table list
+    public Table createTable(String input) {
 
-        //Variables need for create a table
-        String tableName = new String(tableNameArr, StandardCharsets.UTF_8);
+        String[] dataTypeList = {"integer", "double", "char(", "varchar(", "boolean", "primarykey"};
+
+        //String input = "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)";
+        String[] table = input.split("[\\s,]+");
+
+        //remove the "(" after tableName and ")" at end
+        table[2] = table[2].split("\\(")[0];
+        table[table.length - 1] = table[table.length - 1].substring(0, table[table.length - 1].length() - 1);
+
+        //check if the input array length is a even number or not, if not then error
+        if (table.length % 2 != 0) {
+            System.err.println("Input's format is wrong! Please check again!");
+            System.err.println("ERROR");
+            return null;
+        }
+
+        //check if there is any primarykey or many primarykey
+        int primarykeyNum = 0;
+        for (String value : table) {
+            if (value.equalsIgnoreCase("primarykey")) {
+                primarykeyNum++;
+            }
+        }
+        if (primarykeyNum == 0) {
+            System.err.println("No primarykey defined!");
+            System.err.println("ERROR");
+            return null;
+        } else if (primarykeyNum > 1) {
+            System.err.println("Can't have multiple primarykey");
+            System.err.println("ERROR");
+            return null;
+        }
+
+        //variables for create new Table: table name, primarykeyName, attriNameList, attriTypeList
+        String nameTable = table[2];
         String primarykeyName = "";
         ArrayList<String> attriNameList = new ArrayList<>();
         ArrayList<String> attriTypeList = new ArrayList<>();
 
-        // get next 4 bytes for the number of attributes
-        byte[] numberAttributes = Arrays.copyOfRange(tableArr, 8+tableNameSize, 8+tableNameSize+4);
-        int attributeNum = ByteBuffer.wrap(numberAttributes).getInt();
-
-        // get all the attributes
-        int indexTracking = 8+tableNameSize+4;
-        for (int i = 0; i < attributeNum; i++) {
-            // get next 4 bytes for the attribute name size
-            byte[] attriNameSizeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking+4);
-            int attriNameSize = ByteBuffer.wrap(attriNameSizeArr).getInt();
-            indexTracking = indexTracking+4;
-
-            // get the next attriNameSize for the name of attribute and add to the attribute name list
-            byte[] attriNameArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking+attriNameSize);
-            indexTracking = indexTracking + attriNameSize;
-            String attrName = new String(attriNameArr, StandardCharsets.UTF_8);
-            attriNameList.add(attrName);
-
-            // now for attribute type
-            StringBuilder attriTypeStrBuilder = new StringBuilder();
-            // get next 4 bytes for attribute type. It will follow the hard set up:
-            //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
-            byte[] attriTypeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking+4);
-            int attriType = ByteBuffer.wrap(attriTypeArr).getInt();
-            indexTracking = indexTracking+4;
-            attriTypeStrBuilder.append(attriType);
-
-            // get next 4 bytes for attribute type size.
-            // by setup, 0 if integer, boolean, or double, and the size for varchar and char
-            byte[] attriTypeSizeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking+4);
-            int attriTypeSize = ByteBuffer.wrap(attriTypeSizeArr).getInt();
-            indexTracking = indexTracking+4;
-            attriTypeStrBuilder.append(attriTypeSize);
-
-            // get next 4 bytes for primary key by hard setup:
-            //  enum: {primary 0 1}
-            byte[] primarykey = Arrays.copyOfRange(tableArr, indexTracking, indexTracking+4);
-            int primaryNum = ByteBuffer.wrap(primarykey).getInt();
-            indexTracking = indexTracking+4;
-            if (primaryNum == 1) {
-                primarykeyName = attriNameList.get(attriNameList.size()-1);
-            }
-
-            // only add the attribute type (first digit) and the size of attribute type (from the 2nd digit)
-            attriTypeList.add(attriTypeStrBuilder.toString());
-
-        }
-
-        if (attriNameList.size() != attriTypeList.size()) {
-            System.err.println("Something goes wrong. Can't read the catalog file.");
-            System.err.println("ERROR");
-        }
-
-        boolean checkPrimary = false;
-        for (String i : attriNameList) {
-            if (primarykeyName.equalsIgnoreCase(i)) {
-                checkPrimary = true;
-                break;
+        // check if the table already exists
+        for (Table tbl : tables_list) {
+            if (tbl.getTableName().equals(nameTable)) {
+                System.err.println("Table of name " + nameTable + " already exists.");
+                System.err.println("ERROR");
+                return null;
             }
         }
-        if (!checkPrimary) {
-            System.err.println("Something goes wrong. primarykey is not in the attribute list!");
-            System.err.println("ERROR");
+
+        //loop through the rest of the input
+        for (int i = 3; i < table.length; i++) {
+            String inStr = table[i];
+            //check if inStr is a datatype or not
+            boolean isDatatype = false;
+            for (String datatype : dataTypeList) {
+                if (table[i].contains(datatype)) {
+                    isDatatype = true;
+                    break;
+                }
+            }
+
+            //now knowing that this string is not a datatype, check if the next element is a datatype
+            if (!isDatatype) {
+                boolean containsDatatype = false;
+                for (String datatype : dataTypeList) {
+                    if (table[i + 1].contains(datatype)) {
+                        containsDatatype = true;
+                        break;
+                    }
+                }
+                //check if the next string is a datatype or not
+                if (!containsDatatype) {
+                    System.err.println("This " + table[i + 1] + " is NOT a datatype!");
+                    System.err.println("ERROR");
+                    return null;
+                }
+
+                attriNameList.add(inStr);
+
+            } else {
+                //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
+                //  enum: {primary 0 1}
+                if (inStr.equalsIgnoreCase("primarykey")) {
+                    primarykeyName = table[i - 2];
+                } else if (inStr.equalsIgnoreCase("boolean")) {
+                    attriTypeList.add("20");
+                } else if (inStr.equalsIgnoreCase("integer")) {
+                    attriTypeList.add("30");
+                } else if (inStr.equalsIgnoreCase("double")) {
+                    attriTypeList.add("40");
+                } else if (inStr.length() > 6 && inStr.length() <= 9) {
+                    if (inStr.substring(0, 5).equalsIgnoreCase("char(") &&
+                            inStr.substring(inStr.length() - 1).equalsIgnoreCase(")") &&
+                            inStr.substring(5, inStr.length() - 1).matches("[0-9]+")) {
+                        StringBuilder temp = new StringBuilder();
+                        temp.append("5");
+                        String typeSize = inStr.substring(5, inStr.length() - 1);
+                        temp.append(typeSize);
+                        attriTypeList.add(temp.toString());
+                    } else {
+                        attriNameList.add(inStr);
+                    }
+                } else if (inStr.length() > 9) {
+                    if (inStr.substring(0, 8).equalsIgnoreCase("varchar(") &&
+                            inStr.substring(inStr.length() - 1).equalsIgnoreCase(")") &&
+                            inStr.substring(8, inStr.length() - 1).matches("[0-9]+")) {
+                        StringBuilder temp1 = new StringBuilder();
+                        temp1.append("6");
+                        String typeSize1 = inStr.substring(8, inStr.length() - 1);
+                        temp1.append(typeSize1);
+                        attriTypeList.add(temp1.toString());
+                    } else {
+                        attriNameList.add(inStr);
+                    }
+                }
+            }
         }
 
-        Table newTable = new Table(tableName, primarykeyName, attriNameList, attriTypeList);
+        //check if elements in attriNameList are unique, case-insensitive
+        for (int i = 0; i < attriNameList.size(); i++) {
+            for (int j = i + 1; j < attriNameList.size(); j++) {
+                if (attriNameList.get(i).equalsIgnoreCase(attriNameList.get(j))) {
+                    System.err.println("ERROR: Attribute names are not unique.");
+                    return null;
+                }
+            }
+        }
+
+        //adding table to table list
+        Table newTable = new Table(nameTable, primarykeyName, attriNameList, attriTypeList);
+        tables_list.add(newTable);
         return newTable;
     }
 
