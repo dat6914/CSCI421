@@ -33,4 +33,10 @@ public class Page {
         }
         return sum;
     }
+
+    public boolean PageFull(Record CurrRecSize){
+        int PageMax = 4096;
+        int PageSize = getCurrentSize();
+        return (CurrRecSize.getSize() + PageSize) >= PageMax;
+    }
 }
