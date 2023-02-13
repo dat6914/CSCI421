@@ -33,6 +33,16 @@ public class Page {
         return sum;
     }
 
+    public boolean recordExist(String primaryKey){
+        int index = 0;
+        for (Record record : RecordObj.values()){
+            if(record.getPrimaryKey().equals(primaryKey)){
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static void main(){
         System.out.println("test push to repo");
     }
