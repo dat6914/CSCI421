@@ -43,8 +43,11 @@ public class Page {
         return false;
     }
 
-    public static void main(){
-        System.out.println("test push to repo");
+    public boolean PageFull(Record CurrRecSize){
+        int PageMax = 4096;
+        int PageSize = getCurrentSize();
+        return (CurrRecSize.getSize() + PageSize) >= PageMax;
     }
+
 
 }
