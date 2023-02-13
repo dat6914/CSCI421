@@ -13,6 +13,7 @@ public class Page {
     private ArrayList<String> PrimaryKey = new ArrayList<>();
 
     // Record objects
+    // primary_key, record
     private Map<String,Record> RecordObj = new HashMap<>();
 
     // page Constructor
@@ -32,5 +33,4 @@ public class Page {
         }
         return sum;
     }
-
 }
