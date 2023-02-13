@@ -8,16 +8,13 @@ public class Table {
     private ArrayList<String> attriName_list = new ArrayList<>();
     private ArrayList<Page> page_list = new ArrayList<>();
 
-    public Table(String tableName,String primaryKeyName, ArrayList<String> attriName_list){
+    private ArrayList<String> data_list = new ArrayList<>();
+
+    public Table(String tableName,String primaryKeyName, ArrayList<String> attriName_list, ArrayList<String>data_list){
         this.tableName = tableName;
         this.primaryKeyName = primaryKeyName;
         this.attriName_list = attriName_list;
-    }
-
-
-
-    public Record getRecordByPrimaryKey(String primaryKeyName) {
-        return null;
+        this.data_list = data_list;
     }
 
     public String getTableName(){
