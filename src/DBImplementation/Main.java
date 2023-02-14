@@ -127,7 +127,7 @@ public class Main {
     public ArrayList<Object> parseValue(String tableName, String value){
         ArrayList<Object> h = new ArrayList<>();
         String[] valueArr = value.split(",");
-        //
+
         for(String i : valueArr){
 
 
