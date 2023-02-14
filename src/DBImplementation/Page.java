@@ -49,4 +49,26 @@ public class Page {
         return PageID;
     }
 
+    // gets the sum of all the records in this page
+    public int getCurrentSize(){
+        return CurrentSize;
+    }
+
+    public boolean recordExist(String primaryKey){
+        int index = 0;
+        for (Record record : recordList){
+            if(record.getPrimaryKey().equals(primaryKey)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean PageFull(Record CurrRecSize){
+        int PageMax = 4096;
+        int PageSize = getCurrentSize();
+        return (CurrRecSize.getSize() + PageSize) >= PageMax;
+    }
+
+
 }
