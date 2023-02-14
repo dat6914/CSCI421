@@ -1,5 +1,6 @@
 package DBImplementation;
 import java.io.File;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -55,15 +56,9 @@ public class Main {
             } else if (optionArr[0].equals("insert") && optionArr[1].equals("into") && optionArr[3].equals("values") && optionArr.length >= 5) {
                 if (tableExist(optionArr[2])){
                     insertRecordIntoTable(optionArr[2], optionArr[4]);
-                }else{
-                    System.err.println("Invalid Table Name" + optionArr[2]);
-                    displayCommand();
+                }else {
+                    System.err.println("Invalid Table Name " + optionArr[2]);
                 }
-
-
-                //insertTuplesIntoTable(optionArr[2], optionArr[4]);
-
-
             } else if (optionArr[0].equals("select") && optionArr[1].equals("*") && optionArr[2].equals("from") && optionArr.length == 4) {
                 selectRecordsFromTable(optionArr[3]);
             } else if (optionArr[0].equals("create") && optionArr[1].equals("table") && optionArr.length > 3) {
@@ -90,12 +85,20 @@ public class Main {
     }
 
     public static void insertRecordIntoTable(String tableName, String valTuple){
+        ArrayList<Object> val_ArrayList = parseVal(valTuple);
         if (pageExist(tableName)){
             // insert curr record into existing page.
         }else{
+            Page page = new Page(1);
+            // offset = 4096 - curr_len
+            // page.insertPointerToPointerList(new Pointer());
             // create new page and record curr record.
         }
     }
+
+
+
+
 
     public static boolean pageExist(String tableName){
         HashMap<String,Table> tableMap = catalog.getTableMap();
@@ -105,7 +108,10 @@ public class Main {
         }else{
             return true;
         }
+    }
 
+    public static ArrayList<Object> parseVal(String val){
+        return new ArrayList<Object>();
     }
 
     public static boolean tableExist(String tablename){

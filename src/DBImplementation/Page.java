@@ -16,8 +16,7 @@ public class Page {
     private ArrayList<Record> recordList = new ArrayList<>();
 
     // page Constructor
-    public Page(int CurrentSize, int PageID){
-        this.CurrentSize = CurrentSize;
+    public Page(int PageID){
         this.PageID = PageID;
     }
 
