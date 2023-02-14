@@ -30,6 +30,11 @@ public class Catalog {
     public HashMap<String, Table> getTableMap(){
         return tableMap;
     }
+
+    public HashMap<String, ArrayList<String>> getTableTypeMap(){
+        return tableTypeMap;
+    }
+
     
 
 

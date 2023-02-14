@@ -97,6 +97,45 @@ public class Main {
         }
     }
 
+
+    public static int parseChar(String c){
+        StringBuilder builder = new StringBuilder();
+        int temp = 0;
+        for(int i = 5; i <= c.length(); i++){
+            if(c.charAt(i) != ']'){
+                builder.append(c.charAt(i));
+            }else{
+                temp = Integer.parseInt(builder.toString());
+            }
+        }
+        return temp;
+    }
+
+    public static int parseVarchar(String c){
+        StringBuilder builder = new StringBuilder();
+        int temp = 0;
+        for(int i = 8; i <=c.length(); i++){
+            if(c.charAt(i) != ']'){
+                builder.append(c.charAt(i));
+            }else{
+                temp = Integer.parseInt(builder.toString());
+            }
+        }
+        return temp;
+    }
+
+    public ArrayList<Object> parseValue(String tableName, String value){
+        ArrayList<Object> h = new ArrayList<>();
+        String[] valueArr = value.split(",");
+        //
+        for(String i : valueArr){
+
+
+        }
+        return h;
+
+    }
+
     public static boolean pageExist(String tableName){
         HashMap<String,Table> tableMap = catalog.getTableMap();
         Table table = tableMap.get(tableName);
