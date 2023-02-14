@@ -21,17 +21,14 @@ public class StorageManager {
         return record;
     }
 
-    public Page getPageByTableAndPageID(String table, int pageID) {
-        Page page = null;
-        return page;
-    }
+
 
     public ArrayList<Record> getAllRecordsByTableID(int tableID) {
         ArrayList<Record> recordsArrayList = new ArrayList<>();
         return recordsArrayList;
     }
 
-    public boolean insertRecordToATable(String tableID, Record record) {
+    public boolean insertRecordIntoTable(String tableID, Record record) {
         return false;
     }
 
