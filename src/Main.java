@@ -38,11 +38,12 @@ public class Main {
             System.out.println("Please enter commands, enter <quit> to shutdown the database > ");
             String input = scanner.nextLine();
             String[] optionArr = input.split(" ");
-            if (input.equals("display schema")) {
+            if (input.equals("display schema;")) {
                 catalog.displaySchema(args[0], page_size, buffer_size);
             } else if (optionArr[0].equals("display") && optionArr[1].equals("info") && optionArr.length == 3) {
+                optionArr[2] = optionArr[2].substring(0, optionArr[2].length() - 1);
                 catalog.displayInfoTable(optionArr[2]);
-            } else if (optionArr[0].equals("create") && optionArr[1].equals("tables") && optionArr.length > 3) {
+            } else if (optionArr[0].equals("create") && optionArr[1].equals("table") && optionArr.length > 3) {
                 if (catalog.createTable(input) != null) {
                     System.out.println("SUCCESS");
                 }
@@ -69,7 +70,7 @@ public class Main {
     public static void displayCommand() {
         System.out.println("List of commands:");
         System.out.println("    display schema");
-        System.out.println("    display info <name>");
+        System.out.println("    display info <name>;");
         System.out.println("    select * from <name>");
         System.out.println("    insert into <name> values <tuples>");
         System.out.println("    create table <name> (");

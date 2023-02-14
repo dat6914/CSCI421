@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class Catalog {
     private ArrayList<Table> tables_list = new ArrayList<>();
@@ -11,6 +12,8 @@ public class Catalog {
 
     public Catalog(String DBlocation) {
         this.DBlocation = DBlocation;
+        this.tables_list = tableListFromSchema();
+
     }
 
     public ArrayList<Table> getTablesList() {
@@ -39,49 +42,56 @@ public class Catalog {
         System.out.println("Page Size: " + pageSize);
         System.out.println("Buffer Size: " + bufferSize);
         System.out.println("Tables: \n");
-        String catalogPath = location + "/catalog.txt";
-        byte[] catalogByteArr = readCatalogFile(catalogPath);
 
-        ArrayList<Table> tableArrayListFromCATALOGFILE = convertByteArrToCatalog(catalogByteArr);
+        ArrayList<Table> tableArrayListFromCATALOGFILE = tableListFromSchema();
         if (tableArrayListFromCATALOGFILE != null) {
             for (Table table : tableArrayListFromCATALOGFILE) {
                 System.out.println(tableToString(table));
             }
             System.out.println("SUCCESS");
-        } else if (tableArrayListFromCATALOGFILE.size() == 0) {
-            System.out.println("No tables to display");
+        }
+        if (tableArrayListFromCATALOGFILE.size() == 0) {
+            System.out.println("No tables to display in schema");
             System.out.println("SUCCESS");
         }
     }
 
-    //TODO check if table in schema? what about table just created recently and still not quit program yet
     public void displayInfoTable(String tableName) {
-        String catalogPath = DBlocation + "/catalog.txt";
-        byte[] catalogByteArr = readCatalogFile(catalogPath);
-        ArrayList<Table> totalTablesList = totalTableList();
-        if (totalTablesList != null) {
-            for (Table table : totalTablesList) {
+        if (this.tables_list.size() != 0) {
+            boolean flag = false;
+            for (Table table : this.tables_list) {
                 if (table.getTableName().equals(tableName)) {
                     System.out.println(tableToString(table));
                     System.out.println("SUCCESS");
+                    flag = true;
+                    break;
                 }
             }
-        }
-        if (totalTablesList.size() == 0) {
+            if (!flag) {
+                System.out.println("No such table " + tableName);
+                System.out.println("ERROR");
+            }
+        } else {
             System.out.println("No such table " + tableName);
             System.out.println("ERROR");
         }
     }
 
-    public ArrayList<Table> totalTableList() {
+    public ArrayList<Table> tableListFromSchema() {
         String catalogPath = DBlocation + "/catalog.txt";
-        byte[] catalogByteArr = readCatalogFile(catalogPath);
-        ArrayList<Table> tableFromSchema = convertByteArrToCatalog(catalogByteArr);
-        return tableFromSchema;
+        File file = new File(catalogPath);
+        if (file.exists()) {
+            byte[] catalogByteArr = readCatalogFile(catalogPath);
+            ArrayList<Table> tableFromSchema = convertByteArrToCatalog(catalogByteArr);
+            return tableFromSchema;
+        } else {
+            ArrayList<Table> res = new ArrayList<>();
+            return res;
+        }
     }
 
     public Table getTableForInsert(String tableName) {
-        ArrayList<Table> tableArrayList = totalTableList();
+        ArrayList<Table> tableArrayList = tableListFromSchema();
         for (Table table : tableArrayList) {
             if (table.getTableName().equals(tableName)) {
                 return table;
@@ -94,46 +104,26 @@ public class Catalog {
         return null;
     }
 
-    public String processSQLInput(String inp) {
-        return null;
-    }
-
 
     // "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
-    // FORMAT: insert into student values ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true),("A" 1 "school" 2 false)
+    // FORMAT: insert into student values ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true),("(A)" 1 "school" 2 "(false")
     // check: many tuples in 1 sql, check duplicate primary, check how many attributes, check the type of attribute,
     // check the length in varchar and char, check null, check if table name is exist
     public ArrayList<Record> checkInsertRecordSQL(String inp, Table table) {
-        //String inp = "insert into student values (\"Alice\" 1234 \"43 Noel Drive Rochester\" 3.2 true) , (\"A\" 1 \"school\" 2 false)";
-        String[] separateString = inp.split("\\(|\\)");
-
-        String insertIntoTableValues = separateString[0];
-        String[] splitedInsertInToValues = insertIntoTableValues.split("\\s+");
+        int startIndex = inp.indexOf("(");
+        String inputTupesList = inp.substring(startIndex);
 
 
-        //check the table name if there is a table yet
-        String tableName = splitedInsertInToValues[2];
+
+
+        String primaryKey = table.getPrimaryKeyName();
         ArrayList<String> attriNameList = table.getAttriName_list();
         ArrayList<String> attriTypeList = table.getAttriType_list();
 
-        //process the string[]: remove the spaces and commas between types
-        int indexToRemove = 0;
-        for (int i = 0; i < separateString.length; i++) {
-            if (separateString[i].matches("^[ ,]+$")) {
-                indexToRemove = i;
-            }
-        }
-        String[] newInsertSQlAfterRemove = removeElementInStringArray(separateString, indexToRemove);
-        String[] tuplesArr = removeElementInStringArray(newInsertSQlAfterRemove, 0);
-
-        for (int i = 0; i < tuplesArr.length; i++) {
-
-        }
 
 
         return null;
     }
-
 
 
     /**
@@ -466,7 +456,18 @@ public class Catalog {
 
         //remove the "(" after tableName and ")" at end
         table[2] = table[2].split("\\(")[0];
-        table[table.length - 1] = table[table.length - 1].substring(0, table[table.length - 1].length() - 1);
+        String substr = table[table.length - 1].substring(table[table.length - 1].length() - 2);
+
+        if (substr.equals(");")) {
+            table[table.length - 1] = table[table.length - 1].substring(0, table[table.length - 1].length() - 2);
+        }
+        List<String> result = new ArrayList<>();
+        for (String str : table) {
+            if (!str.matches("^[\\s;\\)]*$")) {
+                result.add(str);
+            }
+        }
+         table = result.toArray(new String[0]);
 
         //check if the input array length is a even number or not, if not then error
         if (table.length % 2 != 0) {
@@ -499,7 +500,7 @@ public class Catalog {
         ArrayList<String> attriTypeList = new ArrayList<>();
 
         // check if the table already exists
-        for (Table tbl : tables_list) {
+        for (Table tbl : this.tables_list) {
             if (tbl.getTableName().equals(nameTable)) {
                 System.err.println("Table of name " + nameTable + " already exists.");
                 System.err.println("ERROR");
@@ -588,10 +589,8 @@ public class Catalog {
 
         //adding table to table list
         Table newTable = new Table(nameTable, primarykeyName, attriNameList, attriTypeList);
-        tables_list.add(newTable);
+        this.tables_list.add(newTable);
         return newTable;
     }
-
-
 
 }
