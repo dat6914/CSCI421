@@ -8,6 +8,7 @@ public class Table {
     private ArrayList<String> attriName_list = new ArrayList<>();
     private ArrayList<Page> page_list = new ArrayList<>();
 
+    private ArrayList<Integer> pageID_list = new ArrayList<>();
     private ArrayList<String> data_list = new ArrayList<>();
 
     public Table(String tableName,String primaryKeyName, ArrayList<String> attriName_list, ArrayList<String>data_list){
@@ -21,7 +22,19 @@ public class Table {
         return tableName;
     }
 
-    public ArrayList<Page> getPage_list() {
+    public String getPrimaryKeyName(){
+        return primaryKeyName;
+    }
+
+    public ArrayList<Integer> getPageID_list() {
+        return pageID_list;
+    }
+
+    public ArrayList<String> getAttriName_list(){
+        return attriName_list;
+    }
+
+    public ArrayList<Page> getPage_list(){
         return page_list;
     }
 

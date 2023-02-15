@@ -1,41 +1,33 @@
 package DBImplementation;
 
-import java.awt.*;
-import java.lang.reflect.Array;
 import java.util.*;
-import DBImplementation.Record;
+
 
 public class Page {
-    // Current Page Size
-    private int CurrentSize;
     // Current Page ID
     private int PageID;
-
     private ArrayList<Pointer> pointerList = new ArrayList<>();
-    // Record objects
+    // DBImplementation.Record objects
     private ArrayList<Record> recordList = new ArrayList<>();
 
+    // byte array of records
+    private byte recordByte[] = new byte[4096];
+
+    // number of record
+    private int numOfRecord;
+
     // page Constructor
-    public Page(int CurrentSize, int PageID){
-        this.CurrentSize = CurrentSize;
+    public Page(int PageID){
         this.PageID = PageID;
+        this.numOfRecord = numOfRecord;
+        this.pointerList = pointerList;
+        this.recordByte = recordByte;
     }
 
-    // gets the sum of all the records in this page
-    public void updateCurrentSize(){
-        int sum = 0;
-        for (Record records : recordList){
-            sum += records.getSize();
-        }
-        CurrentSize = sum;
-    }
 
     public void insertPointerToPointerList(Pointer pointer){
         pointerList.add(pointer);
     }
-
-
-
 
     public ArrayList<Record> getRecordList(){
         return recordList;
@@ -49,11 +41,6 @@ public class Page {
         return PageID;
     }
 
-    // gets the sum of all the records in this page
-    public int getCurrentSize(){
-        return CurrentSize;
-    }
-
     public boolean recordExist(String primaryKey){
         int index = 0;
         for (Record record : recordList){
@@ -64,11 +51,12 @@ public class Page {
         return false;
     }
 
-    public boolean PageFull(Record CurrRecSize){
-        int PageMax = 4096;
-        int PageSize = getCurrentSize();
-        return (CurrRecSize.getSize() + PageSize) >= PageMax;
-    }
 
+    public void insertRec(Pointer pointer, byte[] record){
+        for (int i = this.recordByte.length; i > 0; i--) {
+
+
+        }
+    }
 
 }

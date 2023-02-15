@@ -1,12 +1,13 @@
 package DBImplementation;
 import java.io.File;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
 public class Main {
 
-    public static Catalog catalog = new Catalog();
+    public static Catalog catalog;
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -16,7 +17,6 @@ public class Main {
         String db_loc = args[0];
         int page_size = Integer.parseInt(args[1]);
         int buffer_size = Integer.parseInt(args[2]);
-
 
         //Check if there is database at the given database location
         //if there is then restart that database
@@ -34,36 +34,30 @@ public class Main {
         System.out.println("Buffer Size: " + buffer_size);
 
         StorageManager storageManager = new StorageManager(db_loc, page_size, buffer_size);
-
-        Database database = null;
-
-        System.out.println("Database now running...");
-        System.out.println("Please enter commands, enter <quit> to shutdown the db.");
+        Catalog catalog = new Catalog(args[0]);
+        System.out.println("----------------------------------------------");
+        System.out.println("Storage Manager!");
+        System.out.println("Database's now running...");
+        displayCommand();
 
         while(true) {
-            displayCommand();
-            System.out.println("Enter the command: ");
+            System.out.println("Please enter commands, enter <quit> to shutdown the database > ");
             String input = scanner.nextLine();
             String[] optionArr = input.split(" ");
-            if (input.equals("display schema")) {
-                displaySchema(db_loc, page_size, buffer_size);
-            } else if (input.equals("<quit>")) {
+            if (input.equals("display schema;")) {
+                catalog.displaySchema(args[0], page_size, buffer_size);
+            } else if (optionArr[0].equals("display") && optionArr[1].equals("info") && optionArr.length == 3) {
+                optionArr[2] = optionArr[2].substring(0, optionArr[2].length() - 1);
+                catalog.displayInfoTable(optionArr[2]);
+            } else if (optionArr[0].equals("create") && optionArr[1].equals("table") && optionArr.length > 3) {
+                if (catalog.createTable(input) != null) {
+                    System.out.println("SUCCESS");
+                }
+            } else if (input.equals("<quit>")) { //TODO save everything to disk
                 quitProgram();
                 break;
-            } else if (optionArr[0].equals("display") && optionArr[1].equals("info") && optionArr.length == 3) {
-                displayInfo(optionArr[2]);
-            } else if (optionArr[0].equals("insert") && optionArr[1].equals("into") && optionArr[3].equals("values") && optionArr.length >= 5) {
-                if (tableExist(optionArr[2])){
-                    insertRecordIntoTable(optionArr[2], optionArr[4]);
-                }else{
-                    System.err.println("Invalid Table Name" + optionArr[2]);
-                    displayCommand();
-                }
-
-
-                //insertTuplesIntoTable(optionArr[2], optionArr[4]);
-
-
+            } else if (optionArr[0].equals("insert") && optionArr[1].equals("info") && optionArr[3].equals("values") && optionArr.length >= 5) {
+                //TODO
             } else if (optionArr[0].equals("select") && optionArr[1].equals("*") && optionArr[2].equals("from") && optionArr.length == 4) {
                 selectRecordsFromTable(optionArr[3]);
             } else if (optionArr[0].equals("create") && optionArr[1].equals("table") && optionArr.length > 3) {
@@ -76,10 +70,9 @@ public class Main {
                 }
             } else {
                 System.err.println("It is not a valid command.");
+
             }
         }
-
-
     }
 
     public static String removeLastChar(String s){
@@ -99,13 +92,16 @@ public class Main {
     }
 
     public static void insertRecordIntoTable(String tableName, String valTuple){
+        ArrayList<Object> val_ArrayList = parseVal(valTuple);
         if (pageExist(tableName)){
             // insert curr record into existing page.
         }else{
+            Page page = new Page(1);
+            // offset = 4096 - curr_len
+            // page.insertPointerToPointerList(new Pointer());
             // create new page and record curr record.
         }
     }
-
 
     public static int parseChar(String c){
         StringBuilder builder = new StringBuilder();
@@ -133,16 +129,15 @@ public class Main {
         return temp;
     }
 
-    public ArrayList<Object> parseValue(String tableName, String value){
+    public ArrayList<Object> parseValue(String tableName, String value) {
         ArrayList<Object> h = new ArrayList<>();
         String[] valueArr = value.split(",");
-
         for(String i : valueArr){
+
 
 
         }
         return h;
-
     }
 
     public static boolean pageExist(String tableName){
@@ -153,7 +148,10 @@ public class Main {
         }else{
             return true;
         }
+    }
 
+    public static ArrayList<Object> parseVal(String val){
+        return new ArrayList<Object>();
     }
 
     public static boolean tableExist(String tablename){
