@@ -68,13 +68,22 @@ public class Main {
                 selectRecordsFromTable(optionArr[3]);
             } else if (optionArr[0].equals("create") && optionArr[1].equals("table") && optionArr.length > 3) {
                 //Tuple = parse string
-                createTable(optionArr[2], optionArr[3]);
+                if (optionArr[2].charAt(optionArr[2].length() - 1) == '('){
+                    String name = removeLastChar(optionArr[2]);
+                    createTable(name, "(");
+                }else {
+                    createTable(optionArr[2], optionArr[3]);
+                }
             } else {
                 System.err.println("It is not a valid command.");
             }
         }
 
 
+    }
+
+    public static String removeLastChar(String s){
+        return (s == null || s.length() == 0) ? null :(s.substring(0, s.length() - 1));
     }
 
     public static void createTable(String tableName, String tuples) {
