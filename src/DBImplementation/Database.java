@@ -1,8 +1,4 @@
-import DBImplementation.Catalog;
-import DBImplementation.StorageManager;
-
-import java.lang.reflect.Array;
-import java.util.ArrayList;
+package DBImplementation;
 
 public class Database {
 

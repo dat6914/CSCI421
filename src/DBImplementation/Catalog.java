@@ -24,6 +24,10 @@ public class Catalog {
         return tables_list;
     }
 
+    public HashMap<String, ArrayList<String>> getTableTypeMap(){
+        return tableTypeMap;
+    }
+
     public HashMap<String, Table> getTableMap(){
         return tableMap;
     }
@@ -117,7 +121,7 @@ public class Catalog {
     // FORMAT: insert into student values ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true),("(A)" 1 "school" 2 "(false")
     // check: many tuples in 1 sql, check duplicate primary, check how many attributes, check the type of attribute,
     // check the length in varchar and char, check null, check if table name is exist
-    public ArrayList<Record> checkInsertRecordSQL(String inp, Table table) {
+    public ArrayList<Record> checkInsertRecordSQL(String inp, Table table, ArrayList<String> attributeList) {
         int startIndex = inp.indexOf("(");
         String inputTupesList = inp.substring(startIndex);
 
@@ -126,6 +130,7 @@ public class Catalog {
 
         String primaryKey = table.getPrimaryKeyName();
         ArrayList<String> attriNameList = table.getAttriName_list();
+
         //todo table does not have attributeTypeList ArrayList<String> attriTypeList = table.getAttriType_list();
 
 
@@ -209,7 +214,8 @@ public class Catalog {
         byte[] tableNumArr = ByteBuffer.allocate(4).putInt(tableNum).array();
         result = appendByteBuffer(result, tableNumArr);
         for (Table tbl : table_list) {
-            byte[] tableByteArr = convertTableToByteArr(tbl);
+            ArrayList<String> attributeTypeList = catalog.getTableTypeMap().get(tbl.getTableName());
+            byte[] tableByteArr = convertTableToByteArr(tbl, attributeTypeList);
             result = appendByteBuffer(result, tableByteArr);
         }
 
@@ -372,7 +378,7 @@ public class Catalog {
 
     //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
     //  enum: {primary 0 1}
-    public byte[] convertTableToByteArr(Table table) {
+    public byte[] convertTableToByteArr(Table table, ArrayList<String> attributeList) {
 
         ByteBuffer result = ByteBuffer.allocate(0);
         // encoding the tableName
@@ -388,9 +394,9 @@ public class Catalog {
         // encoding each of attributes: attributeName and attributesType
         for (int i = 0; i < numberAttriName; i++) {
             // attributeName
-            int attriNameSize = table.getAttriName_list().get(i).length();
+            int attriNameSize = attributeList.get(i).length();
             byte[] attriNameSizeArr = ByteBuffer.allocate(4).putInt(attriNameSize).array();
-            byte[] attriNameArr = table.getAttriName_list().get(i).getBytes(StandardCharsets.UTF_8);
+            byte[] attriNameArr = attributeList.get(i).getBytes(StandardCharsets.UTF_8);
             result = appendByteBuffer(result, attriNameSizeArr);
             result = appendByteBuffer(result, attriNameArr);
 
