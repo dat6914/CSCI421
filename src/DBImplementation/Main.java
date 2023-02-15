@@ -18,7 +18,6 @@ public class Main {
         int page_size = Integer.parseInt(args[1]);
         int buffer_size = Integer.parseInt(args[2]);
 
-
         //Check if there is database at the given database location
         //if there is then restart that database
         //else, create a new database at given location with pagesize and buffersize
@@ -35,41 +34,37 @@ public class Main {
         System.out.println("Buffer Size: " + buffer_size);
 
         StorageManager storageManager = new StorageManager(db_loc, page_size, buffer_size);
-
-        Database database = null;
-
-        System.out.println("Database now running...");
-        System.out.println("Please enter commands, enter <quit> to shutdown the db.");
+        Catalog catalog = new Catalog(args[0]);
+        System.out.println("----------------------------------------------");
+        System.out.println("Storage Manager!");
+        System.out.println("Database's now running...");
+        displayCommand();
 
         while(true) {
-            displayCommand();
-            System.out.println("Enter the command: ");
+            System.out.println("Please enter commands, enter <quit> to shutdown the database > ");
             String input = scanner.nextLine();
             String[] optionArr = input.split(" ");
-            if (input.equals("display schema")) {
-                displaySchema(db_loc, page_size, buffer_size);
-            } else if (input.equals("<quit>")) {
+            if (input.equals("display schema;")) {
+                catalog.displaySchema(args[0], page_size, buffer_size);
+            } else if (optionArr[0].equals("display") && optionArr[1].equals("info") && optionArr.length == 3) {
+                optionArr[2] = optionArr[2].substring(0, optionArr[2].length() - 1);
+                catalog.displayInfoTable(optionArr[2]);
+            } else if (optionArr[0].equals("create") && optionArr[1].equals("table") && optionArr.length > 3) {
+                if (catalog.createTable(input) != null) {
+                    System.out.println("SUCCESS");
+                }
+            } else if (input.equals("<quit>")) { //TODO save everything to disk
                 quitProgram();
                 break;
-            } else if (optionArr[0].equals("display") && optionArr[1].equals("info") && optionArr.length == 3) {
-                displayInfo(optionArr[2]);
-            } else if (optionArr[0].equals("insert") && optionArr[1].equals("into") && optionArr[3].equals("values") && optionArr.length >= 5) {
-                if (tableExist(optionArr[2])){
-                    insertRecordIntoTable(optionArr[2], optionArr[4]);
-                }else {
-                    System.err.println("Invalid Table Name " + optionArr[2]);
-                }
+            } else if (optionArr[0].equals("insert") && optionArr[1].equals("info") && optionArr[3].equals("values") && optionArr.length >= 5) {
+                //TODO
             } else if (optionArr[0].equals("select") && optionArr[1].equals("*") && optionArr[2].equals("from") && optionArr.length == 4) {
-                selectRecordsFromTable(optionArr[3]);
-            } else if (optionArr[0].equals("create") && optionArr[1].equals("table") && optionArr.length > 3) {
-                //Tuple = parse string
-                createTable(optionArr[2], optionArr[3]);
+                //TODO
             } else {
                 System.err.println("It is not a valid command.");
+
             }
         }
-
-
     }
 
     public static void createTable(String tableName, String tuples) {
