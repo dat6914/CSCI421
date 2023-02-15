@@ -1,9 +1,6 @@
 package DBImplementation;
 
-import java.awt.*;
-import java.lang.reflect.Array;
 import java.util.*;
-import DBImplementation.Record;
 
 public class Page {
     // Current Page Size
@@ -12,7 +9,7 @@ public class Page {
     private int PageID;
 
     private ArrayList<Pointer> pointerList = new ArrayList<>();
-    // Record objects
+    // DBImplementation.Record objects
     private ArrayList<Record> recordList = new ArrayList<>();
 
     // page Constructor
