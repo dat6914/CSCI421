@@ -7,7 +7,7 @@ import java.util.Scanner;
 
 public class Main {
 
-    public static Catalog catalog = new Catalog();
+    public static Catalog catalog;
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -125,8 +125,8 @@ public class Main {
     public ArrayList<Object> parseValue(String tableName, String value) {
         ArrayList<Object> h = new ArrayList<>();
         String[] valueArr = value.split(",");
-        //
-        for (String i : valueArr) {
+        for(String i : valueArr){
+
 
 
         }
