@@ -10,7 +10,7 @@ import java.util.List;
 
 public class Catalog {
     private ArrayList<Table> tables_list = new ArrayList<>();
-    private String DBlocation;
+    private static String DBlocation;
     private HashMap<String, ArrayList<String>> tableTypeMap = new HashMap<>();
     private HashMap<String, Table> tableMap = new HashMap<>();
 
@@ -89,7 +89,7 @@ public class Catalog {
         }
     }
 
-    public ArrayList<Table> tableListFromSchema() {
+    public static ArrayList<Table> tableListFromSchema() {
         String catalogPath = DBlocation + "/catalog.txt";
         File file = new File(catalogPath);
         if (file.exists()) {
@@ -102,7 +102,7 @@ public class Catalog {
         }
     }
 
-    public Table getTableForInsert(String tableName) {
+    public static Table getTableForInsert(String tableName) {
         ArrayList<Table> tableArrayList = tableListFromSchema();
         for (Table table : tableArrayList) {
             if (table.getTableName().equals(tableName)) {
@@ -222,7 +222,7 @@ public class Catalog {
         return result.array();
     }
 
-    public ArrayList<Table> convertByteArrToCatalog(byte[] catalogByteArr) {
+    public static ArrayList<Table> convertByteArrToCatalog(byte[] catalogByteArr) {
         ArrayList<Table> result = new ArrayList<>();
         ByteBuffer byteBuffer = ByteBuffer.wrap(catalogByteArr);
         int tableNum = byteBuffer.getInt(0);
@@ -242,7 +242,7 @@ public class Catalog {
     }
 
     //FORMAT: student name varchar(15) studentID integer primarykey address char(20) gpa double incampus boolean
-    public Table convertByteArrToTable(byte[] tableArr) {
+    public static Table convertByteArrToTable(byte[] tableArr) {
 
         ByteBuffer result = ByteBuffer.wrap(tableArr);
         // get 4 bytes of tableName size

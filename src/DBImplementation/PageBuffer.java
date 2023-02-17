@@ -2,10 +2,22 @@ package DBImplementation;
 import java.util.ArrayList;
 
 public class PageBuffer {
-    private ArrayList<Page> pagelist = new ArrayList<>();
+    private final ArrayList<Page> pagelist;
     int bufferSize;
 
-    //delete, get a page in memory
+    public PageBuffer(int bufferSize) {
+        this.bufferSize = bufferSize;
+        this.pagelist = new ArrayList<>();
+    }
+
+    public Page getPage(int pageID) {
+        for (Page page : pagelist) {
+            if (page.getPageID() == pageID) {
+                return page;
+            }
+        }
+        return null;
+    }
 
 
 }

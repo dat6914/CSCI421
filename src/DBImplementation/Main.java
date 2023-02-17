@@ -1,4 +1,8 @@
 package DBImplementation;
+
+import DBImplementation.Database;
+import DBImplementation.StorageManager;
+
 import java.io.File;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
