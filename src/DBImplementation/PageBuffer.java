@@ -19,6 +19,24 @@ public class PageBuffer {
         return null;
     }
 
+    //TODO
+    //method to write to disk upon quit
+    //method to check least recently used page and see if its been modified (compare metadata time block
+
+    public void addPage(Page page) {
+        if (pagelist.size() < bufferSize) {
+            pagelist.add(page);
+        } else {
+            //TODO
+            // write least recently used page to disk
+        }
+    }
+
+    public void removePage(Page page) {
+        pagelist.remove(page);
+    }
+
+
 
 }
 
