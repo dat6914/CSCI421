@@ -10,7 +10,7 @@ public class Table {
     private ArrayList<String> attriName_list;
     private ArrayList<String> attriType_list;
     private ArrayList<Integer> pageID_list = new ArrayList<>();
-    private int recordNum = 0;
+    private int recordNum = 0; //TODO
 
     public Table(String tableName, String primaryKeyName, ArrayList<String> attriNameList, ArrayList<String> attriTypeList) {
         this.tableName = tableName;
@@ -76,35 +76,7 @@ public class Table {
         return recordNum;
     }
 
-    public Record getRecordByPrimaryKey(String primaryKeyName) {
-        return null;
-    }
 
-    public Page getPageByTableAndPageNumber(String tableName, int pageID) {
-        return null;
-    }
-
-    public ArrayList<Record> getAllRecordsByTable(String tableName) {
-        return null;
-    }
-
-    public boolean insertRecordToTable(Record record) {
-        return false;
-    }
-
-    //primary key here is the value not the column name (primaryKeyName)
-    public boolean deleteRecord(String primaryKeyName, String tableID) {
-        return false;
-    }
-
-    //primary key here is the value not the column name (primaryKeyName)
-    public boolean updateRecord(String primaryKey, Record record) {
-        return false;
-    }
-
-    public int getIndexOfColumn(String colName) {
-        return -1;
-    }
 
 
 

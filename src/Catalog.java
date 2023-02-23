@@ -16,8 +16,22 @@ public class Catalog {
 
     }
 
+    public byte[] convertCatalogToByteArr(Catalog catalog) {
+        ArrayList<Table> table_list = catalog.getTablesList();
+        int tableNum = table_list.size();
+        ByteBuffer result = ByteBuffer.allocate(0);
+        byte[] tableNumArr = ByteBuffer.allocate(4).putInt(tableNum).array();
+        result = appendByteBuffer(result, tableNumArr);
+        for (Table tbl : table_list) {
+            byte[] tableByteArr = convertTableToByteArr(tbl);
+            result = appendByteBuffer(result, tableByteArr);
+        }
+
+        return result.array();
+    }
+
     public ArrayList<Table> getTablesList() {
-        return tables_list;
+        return this.tables_list;
     }
 
     public static byte[] readCatalogFile(String path) {
@@ -27,10 +41,9 @@ public class Catalog {
             byte[] arr = new byte[(int) file.length()];
             fs.read(arr);
             fs.close();
-            //System.out.println("SUCCESS");
             return arr;
         } catch (IOException e) {
-            System.err.println("An error occurred while writing to the file.");
+            System.err.println("An error occurred while reading the file.");
             e.printStackTrace();
             System.err.println("ERROR");
             return null;
@@ -43,14 +56,12 @@ public class Catalog {
         System.out.println("Buffer Size: " + bufferSize);
         System.out.println("Tables: \n");
 
-        ArrayList<Table> tableArrayListFromCATALOGFILE = tableListFromSchema();
-        if (tableArrayListFromCATALOGFILE != null) {
-            for (Table table : tableArrayListFromCATALOGFILE) {
+        if (this.tables_list.size() != 0) {
+            for (Table table : this.tables_list) {
                 System.out.println(tableToString(table));
             }
             System.out.println("SUCCESS");
-        }
-        if (tableArrayListFromCATALOGFILE.size() == 0) {
+        } else {
             System.out.println("No tables to display in schema");
             System.out.println("SUCCESS");
         }
@@ -68,8 +79,8 @@ public class Catalog {
                 }
             }
             if (!flag) {
-                System.out.println("No such table " + tableName);
-                System.out.println("ERROR");
+                System.err.println("No such table " + tableName);
+                System.err.println("ERROR");
             }
         } else {
             System.out.println("No such table " + tableName);
@@ -78,77 +89,23 @@ public class Catalog {
     }
 
     public ArrayList<Table> tableListFromSchema() {
-        String catalogPath = DBlocation + "/catalog.txt";
+        String catalogPath = this.DBlocation + "/catalog.txt";
         File file = new File(catalogPath);
         if (file.exists()) {
             byte[] catalogByteArr = readCatalogFile(catalogPath);
-            ArrayList<Table> tableFromSchema = convertByteArrToCatalog(catalogByteArr);
-            return tableFromSchema;
+            return convertByteArrToCatalog(catalogByteArr);
         } else {
-            ArrayList<Table> res = new ArrayList<>();
-            return res;
+            return new ArrayList<>();
         }
     }
 
-    public Table getTableForInsert(String tableName) {
-        ArrayList<Table> tableArrayList = tableListFromSchema();
-        for (Table table : tableArrayList) {
-            if (table.getTableName().equals(tableName)) {
-                return table;
-            } else {
-                System.err.println("No such table " + tableName);
-                return null;
-            }
-        }
-        System.err.println("No such table " + tableName);
-        return null;
-    }
-
-
-    // "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
-    // FORMAT: insert into student values ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true),("(A)" 1 "school" 2 "(false")
-    // check: many tuples in 1 sql, check duplicate primary, check how many attributes, check the type of attribute,
-    // check the length in varchar and char, check null, check if table name is exist
-    public ArrayList<Record> checkInsertRecordSQL(String inp, Table table) {
-        int startIndex = inp.indexOf("(");
-        String inputTupesList = inp.substring(startIndex);
-
-
-
-
-        String primaryKey = table.getPrimaryKeyName();
-        ArrayList<String> attriNameList = table.getAttriName_list();
-        ArrayList<String> attriTypeList = table.getAttriType_list();
-
-
-
-        return null;
-    }
-
-
-    /**
-     * Method removes element of String array
-     *
-     * @param old   the current String array
-     * @param index index of element that will be removed
-     * @return String array after remove
-     */
-    private String[] removeElementInStringArray(String[] old, int index) {
-        String[] newArray = new String[old.length - 1];
-        for (int i = 0, j = 0; i < old.length; i++) {
-            if (i != index) {
-                newArray[j++] = old[i];
-            }
-        }
-        return newArray;
-    }
 
     //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6} AttributeType
     //  enum: {primary 0 1}
     public static String tableToString(Table table) {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("Table Name: ");
-        stringBuilder.append(table.getTableName() + "\n");
+        stringBuilder.append(table.getTableName()).append("\n");
         stringBuilder.append("Table schema: \n");
         ArrayList<String> attriNameList = table.getAttriName_list();
         ArrayList<String> attriTypeList = table.getAttriType_list();
@@ -192,20 +149,6 @@ public class Catalog {
         return stringBuilder.toString();
     }
 
-
-    public byte[] convertCatalogToByteArr(Catalog catalog) {
-        ArrayList<Table> table_list = catalog.getTablesList();
-        int tableNum = table_list.size();
-        ByteBuffer result = ByteBuffer.allocate(0);
-        byte[] tableNumArr = ByteBuffer.allocate(4).putInt(tableNum).array();
-        result = appendByteBuffer(result, tableNumArr);
-        for (Table tbl : table_list) {
-            byte[] tableByteArr = convertTableToByteArr(tbl);
-            result = appendByteBuffer(result, tableByteArr);
-        }
-
-        return result.array();
-    }
 
     public ArrayList<Table> convertByteArrToCatalog(byte[] catalogByteArr) {
         ArrayList<Table> result = new ArrayList<>();
@@ -318,8 +261,7 @@ public class Catalog {
             return null;
         }
 
-        Table newTable = new Table(tableName, primarykeyName, attriNameList, attriTypeList);
-        return newTable;
+        return new Table(tableName, primarykeyName, attriNameList, attriTypeList);
     }
 
 
@@ -393,7 +335,6 @@ public class Catalog {
 
             int tempForTypeSize = 0;
             if (attriType == 2 || attriType == 3 || attriType == 4) {
-                tempForTypeSize = 0;
             } else {
                 String typeSize = table.getAttrType(i).substring(1);
                 try {
@@ -421,8 +362,8 @@ public class Catalog {
         byte[] numPageArr = ByteBuffer.allocate(4).putInt(numPage).array();
         result = appendByteBuffer(result, numPageArr);
 
-        for (int i = 0; i < numPage; i++) {
-            byte[] temp = ByteBuffer.allocate(4).putInt(pageIDList.get(i)).array();
+        for (Integer integer : pageIDList) {
+            byte[] temp = ByteBuffer.allocate(4).putInt(integer).array();
             result = appendByteBuffer(result, temp);
         }
 
@@ -444,7 +385,7 @@ public class Catalog {
 
 
     // Given a input string:
-    // "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
+    // "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean);"
     // check all the possible error and then parse the string to Table Object
     // add the table to the table list
     public Table createTable(String input) {
@@ -454,27 +395,44 @@ public class Catalog {
         //String input = "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)";
         String[] table = input.split("[\\s,]+");
 
-        //remove the "(" after tableName and ")" at end
-        table[2] = table[2].split("\\(")[0];
-        String substr = table[table.length - 1].substring(table[table.length - 1].length() - 2);
+        //remove the "(" after tableName
+        char lastChar = table[2].charAt(table[2].length()-1);
+        if (lastChar == '(') {
+            table[2] = table[2].split("\\(")[0];
+        } else if (table[3].equalsIgnoreCase("(")) {
+            table = removeElementInStringArray(table, 3);
+        }
 
+        //remove the "(" before the first attribute name
+        char firstChar = table[3].charAt(0);
+        if (firstChar == '(') {
+            table[3] = table[3].substring(1);
+        }
+
+        //remove the ");" at end
+        String substr = table[table.length - 1].substring(table[table.length - 1].length() - 2);
         if (substr.equals(");")) {
             table[table.length - 1] = table[table.length - 1].substring(0, table[table.length - 1].length() - 2);
+        } else {
+           table = removeElementInStringArray(table, table.length - 1);
         }
+
+
+
         List<String> result = new ArrayList<>();
         for (String str : table) {
-            if (!str.matches("^[\\s;\\)]*$")) {
+            if (!str.matches("^[\\s;)]*$")) {
                 result.add(str);
             }
         }
          table = result.toArray(new String[0]);
 
-        //check if the input array length is a even number or not, if not then error
-        if (table.length % 2 != 0) {
-            System.err.println("Input's format is wrong! Please check again!");
-            System.err.println("ERROR");
-            return null;
-        }
+//        //check if the input array length is a even number or not, if not then error
+//        if (table.length % 2 != 0) {
+//            System.err.println("Input's format is wrong! Please check again!");
+//            System.err.println("ERROR");
+//            return null;
+//        }
 
         //check if there is any primarykey or many primarykey
         int primarykeyNum = 0;
@@ -488,7 +446,7 @@ public class Catalog {
             System.err.println("ERROR");
             return null;
         } else if (primarykeyNum > 1) {
-            System.err.println("Can't have multiple primarykey");
+            System.err.println("More than one primarykey");
             System.err.println("ERROR");
             return null;
         }
@@ -587,10 +545,25 @@ public class Catalog {
             }
         }
 
+        if (attriNameList.size() != attriTypeList.size()) {
+            System.err.println("Create table's input is formatting wrong. Please check again!");
+            System.err.println("ERROR");
+            return null;
+        }
         //adding table to table list
         Table newTable = new Table(nameTable, primarykeyName, attriNameList, attriTypeList);
         this.tables_list.add(newTable);
         return newTable;
+    }
+
+    private String[] removeElementInStringArray(String[] old, int index) {
+        String[] newArray = new String[old.length - 1];
+        for (int i = 0, j = 0; i < old.length; i++) {
+            if (i != index) {
+                newArray[j++] = old[i];
+            }
+        }
+        return newArray;
     }
 
 }
