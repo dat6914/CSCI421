@@ -28,12 +28,168 @@ public class StorageManager {
         return this.catalog;
     }
 
-    /**
-     * Method return the list of tables
-     * @return table list
-     */
-    public ArrayList<Table> getTableList() {
-        return this.catalog.getTablesList();
+
+
+    // Given a input string:
+    // "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean);"
+    // check all the possible error and then parse the string to Table Object
+    // add the table to the table list
+    public Table createTable(String input) {
+
+        //String input = "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)";
+        String[] table = input.split("[\\s,]+");
+
+        //remove the "(" after tableName
+        char lastChar = table[2].charAt(table[2].length()-1);
+        if (lastChar == '(') {
+            table[2] = table[2].split("\\(")[0];
+        } else if (table[3].equalsIgnoreCase("(")) {
+            table = removeElementInStringArray(table, 3);
+        }
+
+        //remove the "(" before the first attribute name
+        char firstChar = table[3].charAt(0);
+        if (firstChar == '(') {
+            table[3] = table[3].substring(1);
+        }
+
+        //remove the ");" at end
+        String substr = table[table.length - 1].substring(table[table.length - 1].length() - 2);
+        if (substr.equals(");")) {
+            table[table.length - 1] = table[table.length - 1].substring(0, table[table.length - 1].length() - 2);
+        } else {
+            table = removeElementInStringArray(table, table.length - 1);
+        }
+
+        List<String> result = new ArrayList<>();
+        for (String str : table) {
+            if (!str.matches("^[\\s;)]*$")) {
+                result.add(str);
+            }
+        }
+        table = result.toArray(new String[0]);
+
+        //check if there is any primarykey or many primarykey
+        int primarykeyNum = 0;
+        int indexOfprimaryKey = 0;
+        for (int i = 0; i < table.length; i++) {
+            if (table[i].equalsIgnoreCase("primarykey")) {
+                primarykeyNum++;
+                indexOfprimaryKey = i;
+            }
+        }
+        if (primarykeyNum == 0) {
+            System.err.println("No primary key defined!");
+            System.err.println("ERROR");
+            return null;
+        } else if (primarykeyNum > 1) {
+            System.err.println("More than one primary key");
+            System.err.println("ERROR");
+            return null;
+        }
+
+        //variables for create new Table: table name, primarykeyName, attriNameList, attriTypeList
+        String nameTable = table[2];
+        String primarykeyName = "";
+        ArrayList<String> attriNameList = new ArrayList<>();
+        ArrayList<String> attriTypeList = new ArrayList<>();
+
+        // check if the table already exists
+        for (Table tbl : this.catalog.getTablesList()) {
+            if (tbl.getTableName().equals(nameTable)) {
+                System.err.println("Table of name " + nameTable + " already exists.");
+                System.err.println("ERROR");
+                return null;
+            }
+        }
+
+        //loop through the rest of the input
+        for (int i = 3; i < table.length; i++) {
+            String inStr = table[i];
+
+            //index of datatype before "primarykey" is even
+            if (i < indexOfprimaryKey) {
+                if (i%2 == 0) {
+                    if (!(inStr.equals("integer") || inStr.equals("double") ||inStr.equals("boolean")
+                            || inStr.contains("var(") || inStr.contains("char("))) {
+                        System.err.println("This " + inStr + " is NOT a datatype!");
+                        System.err.println("ERROR");
+                        return null;
+                    }
+                    parseAttributeTypeToNumber(attriTypeList, inStr);
+                } else {
+                    attriNameList.add(inStr);
+                }
+            } else if (i == indexOfprimaryKey) {
+                primarykeyName = table[i-2];
+            } else {
+                if (i%2 != 0) {
+                    if (!(inStr.equals("integer") || inStr.equals("double") ||inStr.equals("boolean")
+                            || inStr.contains("var(") || inStr.contains("char("))) {
+                        System.err.println("This " + inStr + " is NOT a datatype!");
+                        System.err.println("ERROR");
+                        return null;
+                    }
+                    parseAttributeTypeToNumber(attriTypeList, inStr);
+                } else {
+                    attriNameList.add(inStr);
+                }
+            }
+
+        }
+
+        //check if elements in attriNameList are unique, case-insensitive
+        for (int i = 0; i < attriNameList.size(); i++) {
+            for (int j = i + 1; j < attriNameList.size(); j++) {
+                if (attriNameList.get(i).equalsIgnoreCase(attriNameList.get(j))) {
+                    System.err.println("Duplicate attribute name \"" + attriNameList.get(i) + "\"");
+                    System.err.println("ERROR");
+                    return null;
+                }
+            }
+        }
+
+        if (attriNameList.size() != attriTypeList.size()) {
+            System.err.println("Number of attribute names is NOT equal to number of attribute types!");
+            System.err.println("ERROR");
+            return null;
+        }
+
+        //adding table to table list
+        ArrayList<Integer> pageList = new ArrayList<>();
+        Table newTable = new Table(nameTable, primarykeyName, attriNameList, attriTypeList, this.db_loc, pageList);
+        this.catalog.getTablesList().add(newTable);
+        return newTable;
+    }
+
+    private void parseAttributeTypeToNumber(ArrayList<String> attriTypeList, String inStr) {
+        if (inStr.equalsIgnoreCase("boolean")) {
+            attriTypeList.add("20");
+        } else if (inStr.equalsIgnoreCase("integer")) {
+            attriTypeList.add("30");
+        } else if (inStr.equalsIgnoreCase("double")) {
+            attriTypeList.add("40");
+        } else if (inStr.length() > 6 && inStr.length() <= 9) {
+            if (inStr.substring(0, 5).equalsIgnoreCase("char(") &&
+                    inStr.substring(inStr.length() - 1).equalsIgnoreCase(")") &&
+                    inStr.substring(5, inStr.length() - 1).matches("[0-9]+")) {
+                StringBuilder temp = new StringBuilder();
+                temp.append("5");
+                String typeSize = inStr.substring(5, inStr.length() - 1);
+                temp.append(typeSize);
+                attriTypeList.add(temp.toString());
+            }
+        } else if (inStr.length() > 9) {
+            if (inStr.substring(0, 8).equalsIgnoreCase("varchar(") &&
+                    inStr.substring(inStr.length() - 1).equalsIgnoreCase(")") &&
+                    inStr.substring(8, inStr.length() - 1).matches("[0-9]+")) {
+                StringBuilder temp1 = new StringBuilder();
+                temp1.append("6");
+                String typeSize1 = inStr.substring(8, inStr.length() - 1);
+                temp1.append(typeSize1);
+                attriTypeList.add(temp1.toString());
+            }
+        }
     }
 
 
@@ -46,7 +202,7 @@ public class StorageManager {
         File tempFile = new File(path);
         if (tempFile.exists()) {
             try {
-                FileOutputStream fs = new FileOutputStream(path, true);
+                FileOutputStream fs = new FileOutputStream(path);
                 fs.write(data);
                 fs.close();
             } catch (IOException i) {
@@ -59,7 +215,6 @@ public class StorageManager {
             try {
                 FileOutputStream fs = new FileOutputStream(path);
                 fs.write(data);
-                System.out.println("SUCCESS");
             } catch (IOException e) {
                 System.err.println("An error occurred while writing to the file.");
                 e.printStackTrace();
@@ -70,42 +225,12 @@ public class StorageManager {
     }
 
     /**
-     * Method gets record by primary key and table name
-     * @param primaryKeyValue primary key of record
-     * @param tableName table name
-     * @return record
-     */
-    public Record getRecordByPrimaryKey(String primaryKeyValue, String tableName) {
-        Table table = getTableByName(tableName);
-        Object primaryKeyObject = convertPrimaryValueToItsType(primaryKeyValue, table);
-        String primaryKeyName = table.getPrimaryKeyName();
-        int indexOfPrimary = getIndexOfColumn(primaryKeyName, table);
-        ArrayList<Integer> pageIDlist = table.getPageID_list();
-        for (int i = 0; i < pageIDlist.size(); i++) {
-            int pageID = pageIDlist.get(i);
-            Page page = new Page(pageID, table, this.db_loc);
-            ArrayList<Record> recordArrayList = page.getRecordList();
-            for (int j = 0; j < recordArrayList.size(); j++) {
-                Record record = recordArrayList.get(j);
-                ArrayList<Object> valuesList = record.getValuesList();
-                if (valuesList.get(indexOfPrimary).equals(primaryKeyObject)) {
-                    return record;
-                } else {
-                    System.out.println("No record with that primary key");
-                    System.out.println("SUCCESS");
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
      * Method converts primary key value to its type
      * @param primaryKeyValue primary key value
      * @param table table
      * @return Object type of primary key
      */
-    public static Object convertPrimaryValueToItsType (String primaryKeyValue, Table table) {
+    public Object convertPrimaryValueToItsType (String primaryKeyValue, Table table) {
         ArrayList<String> attributeTypeList = table.getAttriType_list();
         int indexPrimaryKey = getIndexOfColumn(table.getPrimaryKeyName(), table);
         for (int i = 0; i < attributeTypeList.size(); i++) {
@@ -140,99 +265,8 @@ public class StorageManager {
         return null;
     }
 
-    /**
-     * Method gets the page by pageID of the table by table name
-     * @param tableName table name
-     * @param pageID page ID
-     */
-    public boolean getPageByTableAndPageNumber(String tableName, int pageID) {
-        Table table = getTableByName(tableName);
-        ArrayList<String> attrName = table.getAttriName_list();
-        ArrayList<Integer> pageList = table.getPageID_list();
-        for (int i = 0; i < pageList.size(); i++) {
-            if (i == pageID) {
-                Page page = new Page(pageList.get(i), table, this.db_loc);
-                ArrayList<Record> recordArrayList = page.getRecordList();
-                for (String name : attrName) {
-                    System.out.print("\t|\t" + name);
-                }
-                System.out.println("\n");
-                for (Record record : recordArrayList) {
-                    System.out.println(printRecord(record));
-                }
-            } else {
-                System.err.println("No pageID in the table.");
-                System.err.println("ERROR");
-                return false;
-            }
-        }
-        return true;
-    }
 
 
-    /**
-     * Method prints all the records of a table
-     * @param tableName table name
-     */
-    public void selectStarFromTable(String tableName) {
-        Table table = getTableByName(tableName);
-        ArrayList<String> attrName = table.getAttriName_list();
-        if (table != null) {
-            ArrayList<Record> recordList = getAllRecordsByTable(tableName);
-            if (recordList.size() == 0) {
-                System.out.println("No record in this table.");
-                System.out.println("SUCCESS");
-            } else {
-                for (String name : attrName) {
-                    System.out.print("\t|\t" + name);
-                }
-                System.out.print("\n");
-
-                for (Record record : recordList) {
-                    System.out.println(printRecord(record));
-                }
-            }
-        }
-    }
-
-
-    /**
-     * Method get all records in the table by table name
-     * @param tableName table name
-     * @return arraylist of records of the table
-     */
-    public ArrayList<Record> getAllRecordsByTable(String tableName) {
-        ArrayList<Record> result = new ArrayList<>();
-        Table table = getTableByName(tableName);
-        ArrayList<Integer> pageIDlist = table.getPageID_list();
-        for (int i = 0; i < pageIDlist.size(); i++) {
-            int pageID = pageIDlist.get(i);
-            Page page = new Page(pageID, table, this.db_loc);
-            ArrayList<Record> recordArrayList = page.getRecordList();
-            result.addAll(recordArrayList);
-        }
-        if (result.size() == 0) {
-            return null;
-        }
-        return result;
-    }
-
-
-    /**
-     * Method prints out the Record
-     * @param record record needs to be printed out
-     * @return String of record
-     */
-    public static String printRecord(Record record) {
-        StringBuilder stringBuilder = new StringBuilder();
-        ArrayList<Object> valuesList = record.getValuesList();
-        for (Object value : valuesList) {
-            stringBuilder.append(" \t|\t");
-            stringBuilder.append(value);
-            stringBuilder.append(" \t|\t");
-        }
-        return stringBuilder.toString();
-    }
 
     /**
      * This method checks if a string is an boolean or not
@@ -280,16 +314,14 @@ public class StorageManager {
      * @return Table
      */
     public Table getTableByName(String tableName) {
-        ArrayList<Table> tableArrayList = getTableList();
+        ArrayList<Table> tableArrayList = this.catalog.getTablesList();
         for (Table table : tableArrayList) {
             if (table.getTableName().equalsIgnoreCase(tableName)) {
                 return table;
-            } else {
-                System.err.println("No such table " + tableName);
-                return null;
             }
         }
         System.err.println("No such table " + tableName);
+        System.err.println("ERROR");
         return null;
     }
 
@@ -311,15 +343,19 @@ public class StorageManager {
     }
 
 
+    public String[] removeElementInStringArray(String[] old, int index) {
+        String[] newArray = new String[old.length - 1];
+        for (int i = 0, j = 0; i < old.length; i++) {
+            if (i != index) {
+                newArray[j++] = old[i];
+            }
+        }
+        return newArray;
+    }
+
+
     //TODO
     public boolean deleteRecord(String primaryKeyValue, String tableName) {
-        Table table = getTableByName(tableName);
-        ArrayList<Integer> pageIDlist = table.getPageID_list();
-        for (Integer page : pageIDlist) {
-            //Open the page and call function convert the page to readable string and print
-            //error if can't read the page
-
-        }
 
         return false;
     }
@@ -327,24 +363,11 @@ public class StorageManager {
 
     //TODO
     public boolean updateRecord(String tableName, String primaryKeyValue, String inputRecordUpdate) {
-        //error if there is no record with primarykeyValue
-        Record record = getRecordByPrimaryKey(primaryKeyValue, tableName);
-        //check the inputRecord
-        //if pass the check then call deleteRecord and insertRecord
 
         return false;
     }
 
 
-//    public TreeMap<Integer, ArrayList<Record>> getMapPageIDRecord(Table table) {
-//        TreeMap<Integer, ArrayList<Record>> result = new TreeMap<>();
-//        ArrayList<Integer> pageIDList = table.getPageID_list();
-//        for (Integer pageID : pageIDList) {
-//            ArrayList<Record> recordArrayList = (new Page(pageID, table, this.db_loc)).getRecordList();
-//            result.put(pageID, recordArrayList);
-//        }
-//        return result;
-//    }
 
 //    //Open every Page and convert the page to Arraylist of Record
 //    //then add the primaryvalue to the arraylist<Object> by calling function find index of attributeName: getIndexOfColumn(primaryKeyName)
@@ -366,45 +389,5 @@ public class StorageManager {
 //        return result;
 //    }
 
-//    public void sortPrimaryKey(ArrayList<Object> primarykeyValueList) {
-//        Collections.sort(primarykeyValueList, comparator);
-//    }
-
-
-//    /**
-//     * Method removes element of String array
-//     *
-//     * @param old   the current String array
-//     * @param index index of element that will be removed
-//     * @return String array after remove
-//     */
-//    private String[] removeElementInStringArray(String[] old, int index) {
-//        String[] newArray = new String[old.length - 1];
-//        for (int i = 0, j = 0; i < old.length; i++) {
-//            if (i != index) {
-//                newArray[j++] = old[i];
-//            }
-//        }
-//        return newArray;
-//    }
-//
-//
-//    // Define a comparator to compare the objects in the list
-//    Comparator<Object> comparator = new Comparator<Object>() {
-//        public int compare(Object o1, Object o2) {
-//            if (o1 instanceof Integer && o2 instanceof Integer) {
-//                return ((Integer) o1).compareTo((Integer) o2);
-//            } else if (o1 instanceof Double && o2 instanceof Double) {
-//                return ((Double) o1).compareTo((Double) o2);
-//            } else if (o1 instanceof String && o2 instanceof String) {
-//                return ((String) o1).compareTo((String) o2);
-//            } else if (o1 instanceof Boolean && o2 instanceof Boolean) {
-//                return ((Boolean) o1).compareTo((Boolean) o2);
-//            } else {
-//                // Objects of different types should be considered equal
-//                return 0;
-//            }
-//        }
-//    };
 
 }

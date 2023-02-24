@@ -1,7 +1,6 @@
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
+
 
 //This is table page
 public class Table {
@@ -9,15 +8,41 @@ public class Table {
     private String primaryKeyName;
     private ArrayList<String> attriName_list;
     private ArrayList<String> attriType_list;
-    private ArrayList<Integer> pageID_list = new ArrayList<>();
-    private int recordNum = 0; //TODO
+    private ArrayList<Integer> pageID_list;
+    private int recordNum = 0;
+    private String db_loc;
 
-    public Table(String tableName, String primaryKeyName, ArrayList<String> attriNameList, ArrayList<String> attriTypeList) {
+
+    public Table(String tableName, String primaryKeyName, ArrayList<String> attriNameList, ArrayList<String> attriTypeList, String db_loc, ArrayList<Integer> pageID_list) {
         this.tableName = tableName;
         this.primaryKeyName = primaryKeyName;
         this.attriName_list = attriNameList;
         this.attriType_list = attriTypeList;
+        this.db_loc = db_loc;
+        this.pageID_list = pageID_list;
+        this.recordNum = getRecordNum(pageID_list);
+
     }
+
+    public int getRecordNum (ArrayList<Integer> pageID_list) {
+        int result = 0;
+
+        for (int i = 0; i < pageID_list.size(); i++) {
+            int index = pageID_list.get(i);
+            Page page = new Page(index, this, this.db_loc);
+            result =  result + page.getRecordList().size();
+        }
+        return result;
+    }
+
+    public void increaseNumRecordBy1() {
+        this.recordNum = this.recordNum + 1;
+    }
+
+    public int getRecordNumUpdate() {
+        return this.recordNum;
+    }
+
 
     /**
      * Method gets pageID list
@@ -68,13 +93,6 @@ public class Table {
         return primaryKeyName;
     }
 
-    /**
-     * Method gets number of records
-     * @return number of records
-     */
-    public int getRecordNum() {
-        return recordNum;
-    }
 
 
 

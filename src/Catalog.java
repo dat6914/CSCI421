@@ -12,8 +12,8 @@ public class Catalog {
 
     public Catalog(String DBlocation) {
         this.DBlocation = DBlocation;
+        this.tables_list = new ArrayList<>();
         this.tables_list = tableListFromSchema();
-
     }
 
     public byte[] convertCatalogToByteArr(Catalog catalog) {
@@ -50,14 +50,14 @@ public class Catalog {
         }
     }
 
-    public void displaySchema(String location, int pageSize, int bufferSize) {
+    public void displaySchema(String location, int pageSize, int bufferSize, Catalog catalog) {
         System.out.println("DB location: " + location);
         System.out.println("Page Size: " + pageSize);
         System.out.println("Buffer Size: " + bufferSize);
         System.out.println("Tables: \n");
 
-        if (this.tables_list.size() != 0) {
-            for (Table table : this.tables_list) {
+        if (catalog.getTablesList().size() != 0) {
+            for (Table table : catalog.getTablesList()) {
                 System.out.println(tableToString(table));
             }
             System.out.println("SUCCESS");
@@ -67,25 +67,9 @@ public class Catalog {
         }
     }
 
-    public void displayInfoTable(String tableName) {
-        if (this.tables_list.size() != 0) {
-            boolean flag = false;
-            for (Table table : this.tables_list) {
-                if (table.getTableName().equals(tableName)) {
-                    System.out.println(tableToString(table));
-                    System.out.println("SUCCESS");
-                    flag = true;
-                    break;
-                }
-            }
-            if (!flag) {
-                System.err.println("No such table " + tableName);
-                System.err.println("ERROR");
-            }
-        } else {
-            System.out.println("No such table " + tableName);
-            System.out.println("ERROR");
-        }
+    public void displayInfoTable(Table table) {
+        String str = tableToString(table);
+        System.out.println(str);
     }
 
     public ArrayList<Table> tableListFromSchema() {
@@ -144,7 +128,7 @@ public class Catalog {
         stringBuilder.append("Pages: ");
         stringBuilder.append(table.getPageID_list().size()).append("\n");
         stringBuilder.append("Records: ");
-        stringBuilder.append(table.getRecordNum()).append("\n");
+        stringBuilder.append(table.getRecordNumUpdate()).append("\n");
 
         return stringBuilder.toString();
     }
@@ -261,7 +245,9 @@ public class Catalog {
             return null;
         }
 
-        return new Table(tableName, primarykeyName, attriNameList, attriTypeList);
+        Table newTable = new Table(tableName, primarykeyName, attriNameList, attriTypeList, this.DBlocation, pageIDList);
+
+        return newTable;
     }
 
 
@@ -383,187 +369,5 @@ public class Catalog {
         return result;
     }
 
-
-    // Given a input string:
-    // "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean);"
-    // check all the possible error and then parse the string to Table Object
-    // add the table to the table list
-    public Table createTable(String input) {
-
-        String[] dataTypeList = {"integer", "double", "char(", "varchar(", "boolean", "primarykey"};
-
-        //String input = "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)";
-        String[] table = input.split("[\\s,]+");
-
-        //remove the "(" after tableName
-        char lastChar = table[2].charAt(table[2].length()-1);
-        if (lastChar == '(') {
-            table[2] = table[2].split("\\(")[0];
-        } else if (table[3].equalsIgnoreCase("(")) {
-            table = removeElementInStringArray(table, 3);
-        }
-
-        //remove the "(" before the first attribute name
-        char firstChar = table[3].charAt(0);
-        if (firstChar == '(') {
-            table[3] = table[3].substring(1);
-        }
-
-        //remove the ");" at end
-        String substr = table[table.length - 1].substring(table[table.length - 1].length() - 2);
-        if (substr.equals(");")) {
-            table[table.length - 1] = table[table.length - 1].substring(0, table[table.length - 1].length() - 2);
-        } else {
-           table = removeElementInStringArray(table, table.length - 1);
-        }
-
-
-
-        List<String> result = new ArrayList<>();
-        for (String str : table) {
-            if (!str.matches("^[\\s;)]*$")) {
-                result.add(str);
-            }
-        }
-         table = result.toArray(new String[0]);
-
-//        //check if the input array length is a even number or not, if not then error
-//        if (table.length % 2 != 0) {
-//            System.err.println("Input's format is wrong! Please check again!");
-//            System.err.println("ERROR");
-//            return null;
-//        }
-
-        //check if there is any primarykey or many primarykey
-        int primarykeyNum = 0;
-        for (String value : table) {
-            if (value.equalsIgnoreCase("primarykey")) {
-                primarykeyNum++;
-            }
-        }
-        if (primarykeyNum == 0) {
-            System.err.println("No primarykey defined!");
-            System.err.println("ERROR");
-            return null;
-        } else if (primarykeyNum > 1) {
-            System.err.println("More than one primarykey");
-            System.err.println("ERROR");
-            return null;
-        }
-
-        //variables for create new Table: table name, primarykeyName, attriNameList, attriTypeList
-        String nameTable = table[2];
-        String primarykeyName = "";
-        ArrayList<String> attriNameList = new ArrayList<>();
-        ArrayList<String> attriTypeList = new ArrayList<>();
-
-        // check if the table already exists
-        for (Table tbl : this.tables_list) {
-            if (tbl.getTableName().equals(nameTable)) {
-                System.err.println("Table of name " + nameTable + " already exists.");
-                System.err.println("ERROR");
-                return null;
-            }
-        }
-
-        //loop through the rest of the input
-        for (int i = 3; i < table.length; i++) {
-            String inStr = table[i];
-            //check if inStr is a datatype or not
-            boolean isDatatype = false;
-            for (String datatype : dataTypeList) {
-                if (table[i].contains(datatype)) {
-                    isDatatype = true;
-                    break;
-                }
-            }
-
-            //now knowing that this string is not a datatype, check if the next element is a datatype
-            if (!isDatatype) {
-                boolean containsDatatype = false;
-                for (String datatype : dataTypeList) {
-                    if (table[i + 1].contains(datatype)) {
-                        containsDatatype = true;
-                        break;
-                    }
-                }
-                //check if the next string is a datatype or not
-                if (!containsDatatype) {
-                    System.err.println("This " + table[i + 1] + " is NOT a datatype!");
-                    System.err.println("ERROR");
-                    return null;
-                }
-
-                attriNameList.add(inStr);
-
-            } else {
-                //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
-                //  enum: {primary 0 1}
-                if (inStr.equalsIgnoreCase("primarykey")) {
-                    primarykeyName = table[i - 2];
-                } else if (inStr.equalsIgnoreCase("boolean")) {
-                    attriTypeList.add("20");
-                } else if (inStr.equalsIgnoreCase("integer")) {
-                    attriTypeList.add("30");
-                } else if (inStr.equalsIgnoreCase("double")) {
-                    attriTypeList.add("40");
-                } else if (inStr.length() > 6 && inStr.length() <= 9) {
-                    if (inStr.substring(0, 5).equalsIgnoreCase("char(") &&
-                            inStr.substring(inStr.length() - 1).equalsIgnoreCase(")") &&
-                            inStr.substring(5, inStr.length() - 1).matches("[0-9]+")) {
-                        StringBuilder temp = new StringBuilder();
-                        temp.append("5");
-                        String typeSize = inStr.substring(5, inStr.length() - 1);
-                        temp.append(typeSize);
-                        attriTypeList.add(temp.toString());
-                    } else {
-                        attriNameList.add(inStr);
-                    }
-                } else if (inStr.length() > 9) {
-                    if (inStr.substring(0, 8).equalsIgnoreCase("varchar(") &&
-                            inStr.substring(inStr.length() - 1).equalsIgnoreCase(")") &&
-                            inStr.substring(8, inStr.length() - 1).matches("[0-9]+")) {
-                        StringBuilder temp1 = new StringBuilder();
-                        temp1.append("6");
-                        String typeSize1 = inStr.substring(8, inStr.length() - 1);
-                        temp1.append(typeSize1);
-                        attriTypeList.add(temp1.toString());
-                    } else {
-                        attriNameList.add(inStr);
-                    }
-                }
-            }
-        }
-
-        //check if elements in attriNameList are unique, case-insensitive
-        for (int i = 0; i < attriNameList.size(); i++) {
-            for (int j = i + 1; j < attriNameList.size(); j++) {
-                if (attriNameList.get(i).equalsIgnoreCase(attriNameList.get(j))) {
-                    System.err.println("ERROR: Attribute names are not unique.");
-                    return null;
-                }
-            }
-        }
-
-        if (attriNameList.size() != attriTypeList.size()) {
-            System.err.println("Create table's input is formatting wrong. Please check again!");
-            System.err.println("ERROR");
-            return null;
-        }
-        //adding table to table list
-        Table newTable = new Table(nameTable, primarykeyName, attriNameList, attriTypeList);
-        this.tables_list.add(newTable);
-        return newTable;
-    }
-
-    private String[] removeElementInStringArray(String[] old, int index) {
-        String[] newArray = new String[old.length - 1];
-        for (int i = 0, j = 0; i < old.length; i++) {
-            if (i != index) {
-                newArray[j++] = old[i];
-            }
-        }
-        return newArray;
-    }
 
 }

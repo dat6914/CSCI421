@@ -16,136 +16,181 @@ public class PageBuffer {
         this.storageManager = new StorageManager(db_loc, page_size, bufferSize);
     }
 
-    public boolean quitProgram() {
-        Catalog catalog =  this.storageManager.getCatalog();
+    public ArrayList<Page> getPagelistBuffer() {
+        return this.pagelistBuffer;
+    }
+
+    public Catalog getCatalog() {
+        return storageManager.getCatalog();
+    }
+
+    public boolean quitProgram(StorageManager storageManager, ArrayList<Page> pagelistBuffer) {
+        Catalog catalog =  storageManager.getCatalog();
         if (catalog != null) {
             byte[] catalogByteArr = catalog.convertCatalogToByteArr(catalog);
             String catalogPath = this.db_loc + "/catalog.txt";
             this.storageManager.writeByteArrToDisk(catalogPath, catalogByteArr);
+            for (int i = 0; i < pagelistBuffer.size(); i++) {
+                Page pageToWrite = pagelistBuffer.get(i);
+                byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite.getRecordList(), pageToWrite.getTable(), this.page_size);
+                String path = this.db_loc  + "/Pages/" + pageToWrite.getPageID() + ".txt";
+                this.storageManager.writeByteArrToDisk(path, byteArr);
+            }
         } else {
             System.err.println("Fails to write catalog to file!");
             System.err.println("ERROR");
             return false;
         }
-        for (int i = 0; i < this.pagelistBuffer.size(); i++) {
-            Page pageToWrite = this.pagelistBuffer.get(i);
-            byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite.getRecordList(), pageToWrite.getTable(), this.page_size);
-            String path = this.db_loc  + "/Pages/" + pageToWrite.getPageID() + ".txt";
-            this.storageManager.writeByteArrToDisk(path, byteArr);
-        }
-
         return true;
     }
 
-    //TODO
     public boolean insertRecordToTable(String inp, String tablename) {
-        Table table = this.storageManager.getTableByName(tablename);
-        int indexOfPrimaryKey = getIndexOfColumn(table.getPrimaryKeyName(), table);
-        boolean insertAlready = false;
-        ArrayList<String[]> stringArrRecordList = returnListofStringArrRecord(inp);
-        ArrayList<Record> recordArrayList = convertStringToRecordList(stringArrRecordList, table);
-        for (Record record : recordArrayList) {
-            if (table.getPageID_list().size() == 0) {
-                if (this.pagelistBuffer.size() > this.bufferSize) {
-                    Page pageToWrite = this.pagelistBuffer.get(0);
-                    byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite.getRecordList(), table, this.page_size);
-                    String path = this.db_loc  + "/Pages/" + pageToWrite.getPageID() + ".txt";
-                    this.storageManager.writeByteArrToDisk(path, byteArr);
-                    this.pagelistBuffer.remove(0);
-                }
-                Page page = new Page(getPageIDList().size()+1, table, this.db_loc);
-                page.getRecordList().add(record);
-                this.pagelistBuffer.add(page);
-                insertAlready = true;
-            } else {
-                for (int m = 0; m < table.getPageID_list().size(); m++) {
-                    if (this.pagelistBuffer.size() > this.bufferSize) {
-                        Page pageToWrite = this.pagelistBuffer.get(0);
-                        byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite.getRecordList(), table, this.page_size);
-                        String path = this.db_loc  + "/Pages/" + pageToWrite.getPageID() + ".txt";
-                        this.storageManager.writeByteArrToDisk(path, byteArr);
-                        this.pagelistBuffer.remove(0);
-                    }
-                    Page page = new Page(table.getPageID_list().get(m), table, this.db_loc);
-                    this.pagelistBuffer.add(page);
+        if (this.storageManager.getCatalog().getTablesList() != null) {
+            Table table = this.storageManager.getTableByName(tablename);
+            if (table != null) {
+                int indexOfPrimaryKey = getIndexOfColumn(table.getPrimaryKeyName(), table);
+                ArrayList<String[]> stringArrRecordList = returnListofStringArrRecord(inp);
+                ArrayList<Record> recordArrayList = convertStringToRecordList(stringArrRecordList, table);
+                if (recordArrayList != null) {
+                    for (Record record : recordArrayList) {
+                        boolean insertAlready = false;
+                        if (table.getPageID_list().size() == 0) {
+                            checkIfBufferFull(table);
+                            Page page = new Page(getPageIDList().size() + 1, table, this.db_loc);
+                            page.getRecordList().add(record);
+                            page.incCurrentPageSize(record);
+                            table.getPageID_list().add(getPageIDList().size() + 1);
+                            table.increaseNumRecordBy1();
 
+                            if (page.getCurrent_page_size() > this.page_size) {
+                                System.err.println("This record is bigger than page size");
+                                return false;
+                            }
 
-                    for (int i = 0; i< page.getRecordList().size(); i++) {
-                        Record tempRecord = page.getRecordList().get(i);
-                        Object recordPrimaryValue = record.getValuesList().get(indexOfPrimaryKey);
-                        Object tempRecordPrimaryValue = tempRecord.getValuesList().get(indexOfPrimaryKey);
-                        int compare = compare2Records(recordPrimaryValue, tempRecordPrimaryValue);
-                        if (compare == 0) {
-                            System.err.println("Can't have duplicated primary key!");
-                            System.err.println("ERROR");
-                            return false;
-                        }
-
-                        if (compare < 0) {
-                            page.getRecordList().add(i, record);
-                            int currentPagesize = page.computeCurrentPagesize(page.getRecordList());
-                            if (currentPagesize > this.page_size) {
-                                int midpoint = page.getRecordList().size()/2;
-                                ArrayList<Record> halfRecord = new ArrayList<>();
-                                for (int j = midpoint; j < page.getRecordList().size(); j++) {
-                                    halfRecord.add(page.getRecordList().get(j));
+                            //check if the page is in the buffer
+                            // if not then add to pagelist buffer
+                            if (!this.pagelistBuffer.contains(page)) {
+                                this.pagelistBuffer.add(page);
+                            //else then remove that page and add back to the last (this is the most recently use)
+                            } else {
+                                int indexPage = this.pagelistBuffer.indexOf(page);
+                                if (indexPage != -1) {
+                                    this.pagelistBuffer.remove(indexPage);
+                                    this.pagelistBuffer.add(page);
                                 }
-                                page.getRecordList().subList(midpoint, page.getRecordList().size()).clear();
-                                if (this.pagelistBuffer.size() > this.bufferSize) {
-                                    Page pageToWrite = this.pagelistBuffer.get(0);
-                                    byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite.getRecordList(), table, this.page_size);
-                                    String path = this.db_loc  + "/Pages/" + pageToWrite.getPageID() + ".txt";
-                                    this.storageManager.writeByteArrToDisk(path, byteArr);
-                                    this.pagelistBuffer.remove(0);
+
+                            }
+                            insertAlready = true;
+                        } else {
+                            for (int m = 0; m < table.getPageID_list().size(); m++) {
+                                checkIfBufferFull(table);
+                                Page page = new Page(table.getPageID_list().get(m), table, this.db_loc);
+                                if (!this.pagelistBuffer.contains(page)) {
+                                    this.pagelistBuffer.add(page);
+                                } else {
+                                    for (Page tempPage : this.pagelistBuffer) {
+                                        if (tempPage.equals(page)) {
+                                            page = tempPage;
+                                            break;
+                                        }
+                                    }
+                                    int indexPage = this.pagelistBuffer.indexOf(page);
+                                    if (indexPage != -1) {
+                                        this.pagelistBuffer.remove(indexPage);
+                                        this.pagelistBuffer.add(page);
+                                    }
                                 }
-                                Page newPage = new Page(getPageIDList().size()+1, table, this.db_loc);
-                                newPage.getRecordList().addAll(halfRecord);
-                                this.pagelistBuffer.add(newPage);
-                                ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
-                                for (Table tbl : tableListInCatalog) {
-                                    if (tbl.getTableName().equals(table.getTableName())){
-                                        tbl.getPageID_list().add(m+1, newPage.getPageID());
+
+                                for (int i = 0; i < page.getRecordList().size(); i++) {
+                                    Record tempRecord = page.getRecordList().get(i);
+                                    Object recordPrimaryValue = record.getValuesList().get(indexOfPrimaryKey);
+                                    Object tempRecordPrimaryValue = tempRecord.getValuesList().get(indexOfPrimaryKey);
+                                    int compare = compare2Records(recordPrimaryValue, tempRecordPrimaryValue);
+                                    if (compare == 0) {
+                                        System.err.println("Can't have duplicated primary key: " + printRecord(record));
+                                        System.err.println("ERROR");
+                                        return false;
+                                    }
+
+                                    if (compare < 0) {
+                                        page.getRecordList().add(i, record);
+                                        page.incCurrentPageSize(record);
+                                        table.increaseNumRecordBy1();
+                                        int currentPagesize = page.getCurrent_page_size();
+                                        if (currentPagesize > this.page_size) {
+                                            int midpoint = page.getRecordList().size() / 2;
+                                            ArrayList<Record> halfRecord = new ArrayList<>();
+                                            for (int j = midpoint; j < page.getRecordList().size(); j++) {
+                                                halfRecord.add(page.getRecordList().get(j));
+                                            }
+                                            page.getRecordList().subList(midpoint, page.getRecordList().size()).clear();
+
+                                            Page newPage = new Page(getPageIDList().size() + 1, table, this.db_loc);
+                                            newPage.getRecordList().addAll(halfRecord);
+                                            checkIfBufferFull(table);
+                                            this.pagelistBuffer.add(newPage);
+                                            ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
+                                            for (Table tbl : tableListInCatalog) {
+                                                if (tbl.getTableName().equals(table.getTableName())) {
+                                                    tbl.getPageID_list().add(m + 1, newPage.getPageID());
+                                                }
+                                            }
+                                        }
+                                        insertAlready = true;
+                                        break;
                                     }
                                 }
                             }
-                            insertAlready = true;
-                            break;
+                        }
+                        if (!insertAlready) {
+                            ArrayList<Integer> pageIDList = table.getPageID_list();
+                            Page lastPage = new Page(pageIDList.get(pageIDList.size() - 1), table, this.db_loc);
+                            for (Page tempPage : this.pagelistBuffer) {
+                                if (tempPage.equals(lastPage)) {
+                                    lastPage = tempPage;
+                                    break;
+                                }
+                            }
+                            lastPage.getRecordList().add(record);
+                            lastPage.incCurrentPageSize(record);
+                            table.increaseNumRecordBy1();
+                            int currentPagesize = lastPage.getCurrent_page_size();
+                            if (currentPagesize > this.page_size) {
+                                int midpoint = lastPage.getRecordList().size() / 2;
+                                ArrayList<Record> halfRecord = new ArrayList<>();
+                                for (int j = midpoint; j < lastPage.getRecordList().size(); j++) {
+                                    halfRecord.add(lastPage.getRecordList().get(j));
+                                }
+                                lastPage.getRecordList().subList(midpoint, lastPage.getRecordList().size()).clear();
+                                Page newPage = new Page(getPageIDList().size() + 1, table, this.db_loc);
+                                newPage.getRecordList().addAll(halfRecord);
+                                checkIfBufferFull(table);
+                                this.pagelistBuffer.add(newPage);
+                                ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
+                                for (Table tbl : tableListInCatalog) {
+                                    if (tbl.getTableName().equals(table.getTableName())) {
+                                        tbl.getPageID_list().add(tableListInCatalog.size() + 1, newPage.getPageID());
+                                    }
+                                }
+                            }
                         }
                     }
+                    return recordArrayList.size() == stringArrRecordList.size();
                 }
             }
-            if (!insertAlready) {
-                ArrayList<Integer> pageIDList = table.getPageID_list();
-                Page lastPage = new Page(pageIDList.get(pageIDList.size()-1), table, this.db_loc);
-                lastPage.getRecordList().add(record);
-                int currentPagesize = lastPage.computeCurrentPagesize(lastPage.getRecordList());
-                if (currentPagesize > this.page_size) {
-                    int midpoint = lastPage.getRecordList().size()/2;
-                    ArrayList<Record> halfRecord = new ArrayList<>();
-                    for (int j = midpoint; j < lastPage.getRecordList().size(); j++) {
-                        halfRecord.add(lastPage.getRecordList().get(j));
-                    }
-                    lastPage.getRecordList().subList(midpoint, lastPage.getRecordList().size()).clear();
-                    if (this.pagelistBuffer.size() > this.bufferSize) {
-                        Page pageToWrite = this.pagelistBuffer.get(0);
-                        byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite.getRecordList(), table, this.page_size);
-                        String path = this.db_loc  + "/Pages/" + pageToWrite.getPageID() + ".txt";
-                        this.storageManager.writeByteArrToDisk(path, byteArr);
-                        this.pagelistBuffer.remove(0);
-                    }
-                    Page newPage = new Page(getPageIDList().size()+1, table, this.db_loc);
-                    newPage.getRecordList().addAll(halfRecord);
-                    this.pagelistBuffer.add(newPage);
-                    ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
-                    for (Table tbl : tableListInCatalog) {
-                        if (tbl.getTableName().equals(table.getTableName())){
-                            tbl.getPageID_list().add(tableListInCatalog.size()+1, newPage.getPageID());
-                        }
-                    }
-                }
-            }
+            return false;
         }
-        return true;
+        return false;
+    }
+
+    private void checkIfBufferFull(Table table) {
+        if (this.pagelistBuffer.size() > this.bufferSize) {
+            Page pageToWrite = this.pagelistBuffer.get(0);
+            byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite.getRecordList(), table, this.page_size);
+            String path = this.db_loc + "/Pages/" + pageToWrite.getPageID() + ".txt";
+            this.storageManager.writeByteArrToDisk(path, byteArr);
+            this.pagelistBuffer.remove(0);
+        }
     }
 
     public ArrayList<Integer> getPageIDList() {
@@ -167,6 +212,9 @@ public class PageBuffer {
                 return null;
             } else {
                 Record record = convertStringArrToRecord(stringarry, table);
+                if (record == null) {
+                    return recordArrayList;
+                }
                 recordArrayList.add(record);
             }
         }
@@ -277,14 +325,21 @@ public class PageBuffer {
         ArrayList<String[]> recordList = new ArrayList<>();
         int startIndex = inp.indexOf("(");
         String inputTupesList = inp.substring(startIndex);
-        if (inputTupesList.charAt(inputTupesList.length()-1) == ';') {
+        if (inputTupesList.substring(inputTupesList.length()-2).equalsIgnoreCase(");")) {
             inputTupesList = inputTupesList.substring(0, inputTupesList.length() - 1);
         }
         String[] splitString = splitString(inputTupesList);
 
+
+
         for (String str : splitString) {
             String tuple = removeFirstAndLastChar(str);
             String[] tupleArr = splitStringBySpaceButNotQuote(tuple);
+            for (int i = 0; i < tupleArr.length; i++) {
+                if (tupleArr[i].equals(" ")) {
+                    this.getStorageManager().removeElementInStringArray(tupleArr, i);
+                }
+            }
             recordList.add(tupleArr);
         }
         return recordList;
@@ -378,6 +433,167 @@ public class PageBuffer {
         result.add(sb.toString());
         return result.toArray(new String[0]);
     }
+
+    public StorageManager getStorageManager() {
+        return this.storageManager;
+    }
+
+    /**
+     * Method prints all the records of a table
+     * @param table table name
+     */
+    public void selectStarFromTable(Table table) {
+        ArrayList<Record> recordList = getAllRecordsByTable(table);
+        if (recordList != null) {
+            if (recordList.size() == 0) {
+                System.out.println("No record in this table.");
+                System.out.println("SUCCESS");
+            } else {
+                for (String name : table.getAttriName_list()) {
+                    System.out.print("  |  " + name + "  |  ");
+                }
+                System.out.print("\n");
+
+                for (Record record : recordList) {
+                    System.out.println(printRecord(record));
+                }
+            }
+        } else {
+            for (String name : table.getAttriName_list()) {
+                System.out.print("  |  " + name + "  |  ");
+            }
+            System.out.print("\n");
+        }
+    }
+
+
+    /**
+     * Method get all records in the table by table name
+     * @param table table
+     * @return arraylist of records of the table
+     */
+    public ArrayList<Record> getAllRecordsByTable(Table table) {
+        ArrayList<Record> result = new ArrayList<>();
+        ArrayList<Integer> pageIDlist = table.getPageID_list();
+        for (int i = 0; i < pageIDlist.size(); i++) {
+            int pageID = pageIDlist.get(i);
+            Page page = new Page(pageID, table, this.db_loc);
+            if (this.pagelistBuffer.contains(page)) {
+                for (Page tempPage : this.pagelistBuffer) {
+                    if (tempPage.equals(page)) {
+                        page = tempPage;
+                        break;
+                    }
+                }
+            } else {
+                this.pagelistBuffer.add(page);
+            }
+            ArrayList<Record> recordArrayList = page.getRecordList();
+            result.addAll(recordArrayList);
+        }
+        if (result.size() == 0) {
+            return null;
+        }
+        return result;
+    }
+
+
+    /**
+     * Method prints out the Record
+     * @param record record needs to be printed out
+     * @return String of record
+     */
+    public static String printRecord(Record record) {
+        StringBuilder stringBuilder = new StringBuilder();
+        ArrayList<Object> valuesList = record.getValuesList();
+        for (Object value : valuesList) {
+            stringBuilder.append("  |  ");
+            stringBuilder.append(value);
+            stringBuilder.append("  |  ");
+        }
+        return stringBuilder.toString();
+    }
+
+    /**
+     * Method gets the page by pageID of the table by table name
+     * @param table table
+     * @param pageNum pageNum
+     */
+    public boolean getPageByTableAndPageNumber(Table table, int pageNum) {
+        ArrayList<String> attrName = table.getAttriName_list();
+        ArrayList<Integer> pageList = table.getPageID_list();
+        for (int i = 0; i < pageList.size(); i++) {
+            if (i == pageNum - 1) {
+                Page page = new Page(pageList.get(i), table, this.db_loc);
+                if (this.pagelistBuffer.contains(page)) {
+                    for (Page tempPage : this.pagelistBuffer) {
+                        if (tempPage.equals(page)) {
+                            page = tempPage;
+                            break;
+                        }
+                    }
+                } else {
+                    this.pagelistBuffer.add(page);
+                }
+                ArrayList<Record> recordArrayList = page.getRecordList();
+                for (String name : attrName) {
+                    System.out.print("  |  " + name + "  |  ");
+                }
+                System.out.print("\n");
+                for (Record record : recordArrayList) {
+                    System.out.println(printRecord(record));
+                }
+            }
+        }
+        return true;
+    }
+
+
+    /**
+     * Method gets record by primary key and table name
+     * @param primaryKeyValue primary key of record
+     * @param table table
+     * @return record
+     */
+    public Record getRecordByPrimaryKey(String primaryKeyValue, Table table) {
+        Object primaryKeyObject = this.storageManager.convertPrimaryValueToItsType(primaryKeyValue, table);
+        String primaryKeyName = table.getPrimaryKeyName();
+        int indexOfPrimary = getIndexOfColumn(primaryKeyName, table);
+        ArrayList<Integer> pageIDlist = table.getPageID_list();
+        for (int i = 0; i < pageIDlist.size(); i++) {
+            int pageID = pageIDlist.get(i);
+            Page page = new Page(pageID, table, this.db_loc);
+            if (this.pagelistBuffer.contains(page)) {
+                for (Page tempPage : this.pagelistBuffer) {
+                    if (tempPage.equals(page)) {
+                        page = tempPage;
+                        break;
+                    }
+                }
+            } else {
+                this.pagelistBuffer.add(page);
+            }
+            ArrayList<Record> recordArrayList = page.getRecordList();
+            for (int j = 0; j < recordArrayList.size(); j++) {
+                Record record = recordArrayList.get(j);
+                ArrayList<Object> valuesList = record.getValuesList();
+                if (valuesList.get(indexOfPrimary).equals(primaryKeyObject)) {
+                    return record;
+                } else {
+                    System.err.println("No record with that primary key");
+                    System.err.println("ERROR");
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    public String getRecordByPrimary(Record record) {
+        return printRecord(record);
+    }
+
+
 
 }
 

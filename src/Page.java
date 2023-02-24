@@ -29,6 +29,10 @@ public class Page {
         return this.table;
     }
 
+    public int getCurrent_page_size() {
+        return this.current_page_size;
+    }
+
     public int computeCurrentPagesize(ArrayList<Record> record_list) {
         int result = 0;
         result = result + 4;
@@ -41,35 +45,13 @@ public class Page {
         return result;
     }
 
-    public int getCurrentpageSize(){
-        return this.current_page_size;
+    public void incCurrentPageSize(Record record){
+        this.current_page_size = this.current_page_size + record.getValuesList().size() + 8;
     }
 
     public int getPageID() {
         return this.pageID;
     }
-
-//    public ArrayList<Object> getPrimarykeyValueList(Table table) {
-//        ArrayList<Object> result = new ArrayList<>();
-//        for (int i = 0; i < record_list.size(); i++) {
-//            Record record = record_list.get(i);
-//            String primaryKey = table.getPrimaryKeyName();
-//            int indexOfPrimaryKey = getIndexOfColumn(primaryKey, table);
-//            result.add(record.getValuesList().get(indexOfPrimaryKey));
-//        }
-//        return result;
-//    }
-
-//    private static int getIndexOfColumn(String attrName, Table table) {
-//        ArrayList<String> attriName_list = table.getAttriName_list();
-//        int index = -1;
-//        for (int i = 0; i < attriName_list.size(); i++) {
-//            if (attriName_list.get(i).equals(attrName)) {
-//                index = i;
-//            }
-//        }
-//        return index;
-//    }
 
 
     public ArrayList<Record> getRecordList() {
@@ -152,9 +134,9 @@ public class Page {
     public ArrayList<Record> convertByteArrToPage(byte[] byteArr, Table table) {
         ArrayList<Record> recordArrayList = new ArrayList<>();
         ByteBuffer byteBuffer = ByteBuffer.wrap(byteArr);
-        int pageSize = byteBuffer.getInt(0);
-        int recordNum = byteBuffer.getInt(4);
-        int indextracking = 8;
+        //int pageSize = byteBuffer.getInt(0);
+        int recordNum = byteBuffer.getInt(0);
+        int indextracking = 4;
 
         for (int i = 0; i < recordNum; i++) {
             int offset = byteBuffer.getInt(indextracking);
@@ -186,14 +168,14 @@ public class Page {
         ArrayList<String> attrTypeList = table.getAttriType_list();
 
         ByteBuffer result = ByteBuffer.wrap(record);
-        //int recordSize = result.getInt(0);
-        int numRecord = result.getInt(0);
+        int recordSize = result.getInt(0);
+        int numRecord = result.getInt(4);
         if (attrTypeList.size() != numRecord) {
             System.err.println("Something goes wrong in converting byte[] to Record");
             System.err.println("ERROR");
             return null;
         }
-        int indexTracking = 4;
+        int indexTracking = 8;
         for (int i = 0; i < numRecord; i++) {
 
             char attrType = attrTypeList.get(i).charAt(0);
