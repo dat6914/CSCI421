@@ -1,14 +1,18 @@
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class Record {
-    /**
-     *
-     */
-    private ArrayList<Object> valuesList;
+/**
+ * CSCI420 Project - Phase 1
+ * Group 3
+ */
 
+/**
+ * This class is to store record's values
+ */
+public class Record {
+
+    private ArrayList<Object> valuesList;
 
     /**
      * Constructor of Record
@@ -26,7 +30,5 @@ public class Record {
     public ArrayList<Object> getValuesList() {
         return valuesList;
     }
-
-
 
 }

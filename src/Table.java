@@ -1,8 +1,14 @@
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
+/**
+ * CSCI420 Project - Phase 1
+ * Group 3
+ */
 
-//This is table page
+/**
+ * This class is to hold information about the table
+ */
 public class Table {
     private String tableName;
     private String primaryKeyName;
@@ -24,6 +30,12 @@ public class Table {
 
     }
 
+
+    /**
+     * Method gets the number of records
+     * @param pageID_list list of pageID
+     * @return number of records at this table
+     */
     public int getRecordNum (ArrayList<Integer> pageID_list) {
         int result = 0;
 
@@ -35,10 +47,17 @@ public class Table {
         return result;
     }
 
+    /**
+     * Method increases the number of record by 1
+     */
     public void increaseNumRecordBy1() {
         this.recordNum = this.recordNum + 1;
     }
 
+    /**
+     * Method get the number of record after updated
+     * @return the number of records
+     */
     public int getRecordNumUpdate() {
         return this.recordNum;
     }
@@ -52,6 +71,7 @@ public class Table {
         return pageID_list;
     }
 
+
     /**
      * Method gets an attribute type at an given index
      * @param index index of attribute type
@@ -61,6 +81,7 @@ public class Table {
         return attriType_list.get(index);
     }
 
+
     /**
      * Method gets table name
      * @return tableName
@@ -68,6 +89,7 @@ public class Table {
     public String getTableName() {
         return tableName;
     }
+
 
     /**
      * Method gets arraylist of attribute names
@@ -77,6 +99,7 @@ public class Table {
         return attriName_list;
     }
 
+
     /**
      * Method gets arraylist of attribute types
      * @return arraylist of attribute types
@@ -85,6 +108,7 @@ public class Table {
         return attriType_list;
     }
 
+
     /**
      * Method gets Name of primarykey
      * @return Name of primarykey
@@ -92,11 +116,5 @@ public class Table {
     public String getPrimaryKeyName() {
         return primaryKeyName;
     }
-
-
-
-
-
-
 
 }

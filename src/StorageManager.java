@@ -5,6 +5,11 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
+ * CSCI420 Project - Phase 1
+ * Group 3
+ */
+
+/**
  * The goal of this class is to communicate with hardware
  */
 public class StorageManager {
@@ -29,11 +34,16 @@ public class StorageManager {
     }
 
 
-
     // Given a input string:
     // "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean);"
     // check all the possible error and then parse the string to Table Object
     // add the table to the table list
+
+    /**
+     * Method is called when create table SQL command
+     * @param input create table SQL input
+     * @return table
+     */
     public Table createTable(String input) {
 
         //String input = "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)";
@@ -162,6 +172,12 @@ public class StorageManager {
         return newTable;
     }
 
+
+    /**
+     * Method parses attribute type to a number
+     * @param attriTypeList arraylist of attribute types
+     * @param inStr string input
+     */
     private void parseAttributeTypeToNumber(ArrayList<String> attriTypeList, String inStr) {
         if (inStr.equalsIgnoreCase("boolean")) {
             attriTypeList.add("20");
@@ -224,6 +240,7 @@ public class StorageManager {
         }
     }
 
+
     /**
      * Method converts primary key value to its type
      * @param primaryKeyValue primary key value
@@ -264,8 +281,6 @@ public class StorageManager {
         System.err.println("ERROR");
         return null;
     }
-
-
 
 
     /**
@@ -343,6 +358,12 @@ public class StorageManager {
     }
 
 
+    /**
+     * Method removes element at index in a string array
+     * @param old string array need to be removed an element
+     * @param index index of element want to remove
+     * @return string array after removing element
+     */
     public String[] removeElementInStringArray(String[] old, int index) {
         String[] newArray = new String[old.length - 1];
         for (int i = 0, j = 0; i < old.length; i++) {
@@ -366,28 +387,5 @@ public class StorageManager {
 
         return false;
     }
-
-
-
-//    //Open every Page and convert the page to Arraylist of Record
-//    //then add the primaryvalue to the arraylist<Object> by calling function find index of attributeName: getIndexOfColumn(primaryKeyName)
-//    // then check if the insert input has unique value and non-null
-//    public ArrayList<Object> getPrimarykeyValueList(Table table) {
-//        ArrayList<Object> result = new ArrayList<>();
-//        ArrayList<Integer> pageIDlist = table.getPageID_list();
-//        for (int j = 0; j < pageIDlist.size(); j++) {
-//            int pageID = pageIDlist.get(j);
-//            Page page = new Page(pageID, table, this.db_loc);
-//            ArrayList<Record> record_list = page.getRecordList();
-//            for (int i = 0; i < record_list.size(); i++) {
-//                Record record = record_list.get(i);
-//                String primaryKey = table.getPrimaryKeyName();
-//                int indexOfPrimaryKey = getIndexOfColumn(primaryKey, table);
-//                result.add(record.getValuesList().get(indexOfPrimaryKey));
-//            }
-//        }
-//        return result;
-//    }
-
 
 }

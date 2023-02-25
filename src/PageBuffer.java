@@ -1,6 +1,18 @@
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * CSCI420 Project - Phase 1
+ * Group 3
+ */
+
+/**
+ * This class is a page buffer that can get a page and remove a page that the least recently used (LRU)
+ * when the buffer is full.
+ * Description: The way the buffer works is like a Queue (FIFO): what page is accessed first will be added
+ * to the queue and when the buffer is full, buffer will remove and write the first page in the queue
+ * to the disk, so there will be room for another page loaded in memory.
+ */
 public class PageBuffer {
     private String db_loc;
     private int page_size;
@@ -8,7 +20,7 @@ public class PageBuffer {
     private int bufferSize;
     private StorageManager storageManager;
 
-    //delete, get a page in memory
+
     public PageBuffer(String db_loc, int page_size, int bufferSize) {
         this.db_loc = db_loc;
         this.page_size = page_size;
@@ -16,14 +28,30 @@ public class PageBuffer {
         this.storageManager = new StorageManager(db_loc, page_size, bufferSize);
     }
 
+
+    /**
+     * Method get the page list in buffer
+     * @return arraylist of pages in buffer
+     */
     public ArrayList<Page> getPagelistBuffer() {
         return this.pagelistBuffer;
     }
 
+
+    /**
+     * Method gets Catalog
+     * @return catalog
+     */
     public Catalog getCatalog() {
         return storageManager.getCatalog();
     }
 
+    /**
+     * Method saves the pages buffer to disk and catalog file to disk
+     * @param storageManager storage manager
+     * @param pagelistBuffer arraylist of page in buffer
+     * @return true if successfully otherwise false
+     */
     public boolean quitProgram(StorageManager storageManager, ArrayList<Page> pagelistBuffer) {
         Catalog catalog =  storageManager.getCatalog();
         if (catalog != null) {
@@ -44,6 +72,13 @@ public class PageBuffer {
         return true;
     }
 
+
+    /**
+     * Method inserts the record to table
+     * @param inp input SQL
+     * @param tablename table name
+     * @return true if successfully otherwise false
+     */
     public boolean insertRecordToTable(String inp, String tablename) {
         if (this.storageManager.getCatalog().getTablesList() != null) {
             Table table = this.storageManager.getTableByName(tablename);
@@ -58,7 +93,7 @@ public class PageBuffer {
                             checkIfBufferFull(table);
                             Page page = new Page(getPageIDList().size() + 1, table, this.db_loc);
                             page.getRecordList().add(record);
-                            page.incCurrentPageSize(record);
+                            page.incCurrentPageSize(record, page.convertRecordToByteArr(record, table));
                             table.getPageID_list().add(getPageIDList().size() + 1);
                             table.increaseNumRecordBy1();
 
@@ -71,22 +106,27 @@ public class PageBuffer {
                             // if not then add to pagelist buffer
                             if (!this.pagelistBuffer.contains(page)) {
                                 this.pagelistBuffer.add(page);
+                                checkIfBufferFull(table);
                             //else then remove that page and add back to the last (this is the most recently use)
                             } else {
                                 int indexPage = this.pagelistBuffer.indexOf(page);
                                 if (indexPage != -1) {
                                     this.pagelistBuffer.remove(indexPage);
                                     this.pagelistBuffer.add(page);
+                                    checkIfBufferFull(table);
                                 }
 
                             }
                             insertAlready = true;
                         } else {
-                            for (int m = 0; m < table.getPageID_list().size(); m++) {
-                                checkIfBufferFull(table);
-                                Page page = new Page(table.getPageID_list().get(m), table, this.db_loc);
+                            ArrayList<Integer> originalPageIDList = new ArrayList<>(table.getPageID_list());
+
+                            for (int m = 0; m < originalPageIDList.size(); m++) {
+
+                                Page page = new Page(originalPageIDList.get(m), table, this.db_loc);
                                 if (!this.pagelistBuffer.contains(page)) {
                                     this.pagelistBuffer.add(page);
+                                    checkIfBufferFull(table);
                                 } else {
                                     for (Page tempPage : this.pagelistBuffer) {
                                         if (tempPage.equals(page)) {
@@ -98,6 +138,7 @@ public class PageBuffer {
                                     if (indexPage != -1) {
                                         this.pagelistBuffer.remove(indexPage);
                                         this.pagelistBuffer.add(page);
+                                        checkIfBufferFull(table);
                                     }
                                 }
 
@@ -114,7 +155,7 @@ public class PageBuffer {
 
                                     if (compare < 0) {
                                         page.getRecordList().add(i, record);
-                                        page.incCurrentPageSize(record);
+                                        page.incCurrentPageSize(record, page.convertRecordToByteArr(record, table));
                                         table.increaseNumRecordBy1();
                                         int currentPagesize = page.getCurrent_page_size();
                                         if (currentPagesize > this.page_size) {
@@ -123,12 +164,18 @@ public class PageBuffer {
                                             for (int j = midpoint; j < page.getRecordList().size(); j++) {
                                                 halfRecord.add(page.getRecordList().get(j));
                                             }
-                                            page.getRecordList().subList(midpoint, page.getRecordList().size()).clear();
 
+                                            page.getRecordList().subList(midpoint, page.getRecordList().size()).clear();
                                             Page newPage = new Page(getPageIDList().size() + 1, table, this.db_loc);
                                             newPage.getRecordList().addAll(halfRecord);
-                                            checkIfBufferFull(table);
+
+                                            for (Record rec : halfRecord) {
+                                                page.decCurrentPageSize(rec, page.convertRecordToByteArr(rec, table));
+                                                newPage.incCurrentPageSize(rec, newPage.convertRecordToByteArr(rec, table));
+                                            }
+
                                             this.pagelistBuffer.add(newPage);
+                                            checkIfBufferFull(table);
                                             ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
                                             for (Table tbl : tableListInCatalog) {
                                                 if (tbl.getTableName().equals(table.getTableName())) {
@@ -152,7 +199,7 @@ public class PageBuffer {
                                 }
                             }
                             lastPage.getRecordList().add(record);
-                            lastPage.incCurrentPageSize(record);
+                            lastPage.incCurrentPageSize(record, lastPage.convertRecordToByteArr(record, table));
                             table.increaseNumRecordBy1();
                             int currentPagesize = lastPage.getCurrent_page_size();
                             if (currentPagesize > this.page_size) {
@@ -164,8 +211,13 @@ public class PageBuffer {
                                 lastPage.getRecordList().subList(midpoint, lastPage.getRecordList().size()).clear();
                                 Page newPage = new Page(getPageIDList().size() + 1, table, this.db_loc);
                                 newPage.getRecordList().addAll(halfRecord);
-                                checkIfBufferFull(table);
+                                for (Record rec : halfRecord) {
+                                    lastPage.decCurrentPageSize(rec, lastPage.convertRecordToByteArr(rec, table));
+                                    newPage.incCurrentPageSize(rec, newPage.convertRecordToByteArr(rec, table));
+                                }
+
                                 this.pagelistBuffer.add(newPage);
+                                checkIfBufferFull(table);
                                 ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
                                 for (Table tbl : tableListInCatalog) {
                                     if (tbl.getTableName().equals(table.getTableName())) {
@@ -183,6 +235,12 @@ public class PageBuffer {
         return false;
     }
 
+
+    /**
+     * Method checks if buffer is full. If it is full then write the first page in the arraylist
+     * of pages to the disk
+     * @param table table
+     */
     private void checkIfBufferFull(Table table) {
         if (this.pagelistBuffer.size() > this.bufferSize) {
             Page pageToWrite = this.pagelistBuffer.get(0);
@@ -193,6 +251,11 @@ public class PageBuffer {
         }
     }
 
+
+    /**
+     * Method gets the list of pageID
+     * @return arraylist of pageID
+     */
     public ArrayList<Integer> getPageIDList() {
         ArrayList<Integer> result = new ArrayList<>();
         ArrayList<Table> tableList = this.storageManager.getCatalog().getTablesList();
@@ -202,6 +265,13 @@ public class PageBuffer {
         return result;
     }
 
+
+    /**
+     * Method converts arraylist of record string to arraylist of records
+     * @param recordList arraylist of record string
+     * @param table table that records belong to
+     * @return arraylist of records
+     */
     public ArrayList<Record> convertStringToRecordList(ArrayList<String[]> recordList, Table table) {
         ArrayList<Record> recordArrayList = new ArrayList<>();
         ArrayList<String> attriNameList = table.getAttriName_list();
@@ -221,6 +291,13 @@ public class PageBuffer {
         return recordArrayList;
     }
 
+
+    /**
+     * Method converts byte array of record to record object
+     * @param strArr byte array of record
+     * @param table table
+     * @return record object
+     */
     public Record convertStringArrToRecord(String[] strArr, Table table) {
         ArrayList<Object> valuesList = new ArrayList<>();
         String primaryKey = table.getPrimaryKeyName();
@@ -301,6 +378,7 @@ public class PageBuffer {
         return new Record(valuesList);
     }
 
+
     /**
      * Method gets the index of attribute name in the attribute name list
      * @param attrName attribute name
@@ -317,10 +395,17 @@ public class PageBuffer {
         return index;
     }
 
+
     // "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
     // FORMAT: insert into student values ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true),("(A)" 1 "school" 2 "(false")
     // check: many tuples in 1 sql, check duplicate primary, check how many attributes, check the type of attribute,
     // check the length in varchar and char, check null, check if table name is exist
+
+    /**
+     * Method return the input record string to the list of string array
+     * @param inp record string input
+     * @return arraylist of array string (one string[] is the record string)
+     */
     public ArrayList<String[]> returnListofStringArrRecord(String inp) {
         ArrayList<String[]> recordList = new ArrayList<>();
         int startIndex = inp.indexOf("(");
@@ -329,8 +414,6 @@ public class PageBuffer {
             inputTupesList = inputTupesList.substring(0, inputTupesList.length() - 1);
         }
         String[] splitString = splitString(inputTupesList);
-
-
 
         for (String str : splitString) {
             String tuple = removeFirstAndLastChar(str);
@@ -345,6 +428,13 @@ public class PageBuffer {
         return recordList;
     }
 
+
+    /**
+     * Method compares 2 Objects
+     * @param o1 object 1
+     * @param o2 object 2
+     * @return 0 is equals, -1 if ob1 < ob2, and 1 if ob1 > ob2
+     */
     public int compare2Records(Object o1, Object o2) {
         if (o1 instanceof Integer && o2 instanceof Integer) {
             return ((Integer) o1).compareTo((Integer) o2);
@@ -360,10 +450,22 @@ public class PageBuffer {
         }
     }
 
+
+    /**
+     * Method checks if a string is boolean
+     * @param str string
+     * @return true if a boolean otherwise false
+     */
     private static boolean isBoolean(String str) {
         return str.equalsIgnoreCase("true") || str.equalsIgnoreCase("false");
     }
 
+
+    /**
+     * Method checks if a string is double
+     * @param str string
+     * @return true if a double otherwise false
+     */
     private static boolean isDouble(String str) {
         try {
             Double.parseDouble(str);
@@ -387,6 +489,12 @@ public class PageBuffer {
         }
     }
 
+
+    /**
+     * Method removes the first and last of a string
+     * @param input string
+     * @return string after removing
+     */
     private static String removeFirstAndLastChar(String input) {
         if (input != null && input.length() > 2) {
             return input.substring(1, input.length() - 1);
@@ -394,6 +502,12 @@ public class PageBuffer {
         return input;
     }
 
+
+    /**
+     * Method splits the insert SQL string
+     * @param input insert SQL string
+     * @return array of string
+     */
     private static String[] splitString(String input) {
         List<String> result = new ArrayList<>();
         boolean inQuote = false;
@@ -414,6 +528,12 @@ public class PageBuffer {
         return result.toArray(new String[0]);
     }
 
+
+    /**
+     * Method splits a string by space but not quote
+     * @param input string input
+     * @return string array after splitting
+     */
     private static String[] splitStringBySpaceButNotQuote(String input) {
         List<String> result = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
@@ -434,9 +554,15 @@ public class PageBuffer {
         return result.toArray(new String[0]);
     }
 
+
+    /**
+     * Method gets the storage manager
+     * @return storage manager
+     */
     public StorageManager getStorageManager() {
         return this.storageManager;
     }
+
 
     /**
      * Method prints all the records of a table
@@ -514,6 +640,7 @@ public class PageBuffer {
         return stringBuilder.toString();
     }
 
+
     /**
      * Method gets the page by pageID of the table by table name
      * @param table table
@@ -572,6 +699,7 @@ public class PageBuffer {
                 }
             } else {
                 this.pagelistBuffer.add(page);
+                checkIfBufferFull(table);
             }
             ArrayList<Record> recordArrayList = page.getRecordList();
             for (int j = 0; j < recordArrayList.size(); j++) {
@@ -579,22 +707,21 @@ public class PageBuffer {
                 ArrayList<Object> valuesList = record.getValuesList();
                 if (valuesList.get(indexOfPrimary).equals(primaryKeyObject)) {
                     return record;
-                } else {
-                    System.err.println("No record with that primary key");
-                    System.err.println("ERROR");
-                    return null;
                 }
             }
         }
         return null;
     }
 
+
+    /**
+     * Method return string of record by primaryKey
+     * @param record record
+     * @return string of record
+     */
     public String getRecordByPrimary(Record record) {
         return printRecord(record);
     }
-
-
-
 }
 
 

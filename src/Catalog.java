@@ -1,4 +1,3 @@
-
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -6,6 +5,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * CSCI420 Project - Phase 1
+ * Group 3
+ */
+
+/**
+ * This Class is to store the schema of database
+ */
 public class Catalog {
     private ArrayList<Table> tables_list = new ArrayList<>();
     private String DBlocation;
@@ -16,6 +23,12 @@ public class Catalog {
         this.tables_list = tableListFromSchema();
     }
 
+
+    /**
+     * Method converts catalog to byte array
+     * @param catalog catalog need to be converted to byte array
+     * @return byte array of catalog
+     */
     public byte[] convertCatalogToByteArr(Catalog catalog) {
         ArrayList<Table> table_list = catalog.getTablesList();
         int tableNum = table_list.size();
@@ -26,14 +39,24 @@ public class Catalog {
             byte[] tableByteArr = convertTableToByteArr(tbl);
             result = appendByteBuffer(result, tableByteArr);
         }
-
         return result.array();
     }
 
+
+    /**
+     * Method gets tables list
+     * @return table list
+     */
     public ArrayList<Table> getTablesList() {
         return this.tables_list;
     }
 
+
+    /**
+     * Method reads the Catalog.txt and return the byte array
+     * @param path path of Catalog.txt
+     * @return byte array
+     */
     public static byte[] readCatalogFile(String path) {
         try {
             File file = new File(path);
@@ -50,6 +73,14 @@ public class Catalog {
         }
     }
 
+
+    /**
+     * Method displays the display schema
+     * @param location location of database
+     * @param pageSize size of page (byte)
+     * @param bufferSize    size of buffer (number of pages)
+     * @param catalog catalog needs to be displayed
+     */
     public void displaySchema(String location, int pageSize, int bufferSize, Catalog catalog) {
         System.out.println("DB location: " + location);
         System.out.println("Page Size: " + pageSize);
@@ -62,16 +93,26 @@ public class Catalog {
             }
             System.out.println("SUCCESS");
         } else {
-            System.out.println("No tables to display in schema");
+            System.out.println("No tables to display");
             System.out.println("SUCCESS");
         }
     }
 
+
+    /**
+     * Method prints the table out
+     * @param table table need to be printed out
+     */
     public void displayInfoTable(Table table) {
         String str = tableToString(table);
         System.out.println(str);
     }
 
+
+    /**
+     * Method returns the arraylist of tables from catalog
+     * @return arraylist of tables
+     */
     public ArrayList<Table> tableListFromSchema() {
         String catalogPath = this.DBlocation + "/catalog.txt";
         File file = new File(catalogPath);
@@ -86,6 +127,12 @@ public class Catalog {
 
     //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6} AttributeType
     //  enum: {primary 0 1}
+
+    /**
+     * Method returns the string of a table
+     * @param table table
+     * @return string of table
+     */
     public static String tableToString(Table table) {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("Table Name: ");
@@ -134,6 +181,11 @@ public class Catalog {
     }
 
 
+    /**
+     * Method converts byte array of catalog to arraylist of tables
+     * @param catalogByteArr byte array of catalog
+     * @return arraylist of tables
+     */
     public ArrayList<Table> convertByteArrToCatalog(byte[] catalogByteArr) {
         ArrayList<Table> result = new ArrayList<>();
         ByteBuffer byteBuffer = ByteBuffer.wrap(catalogByteArr);
@@ -154,6 +206,12 @@ public class Catalog {
     }
 
     //FORMAT: student name varchar(15) studentID integer primarykey address char(20) gpa double incampus boolean
+
+    /**
+     * Methods converts byte array of table to table object
+     * @param tableArr byte array of table
+     * @return table object
+     */
     public Table convertByteArrToTable(byte[] tableArr) {
 
         ByteBuffer result = ByteBuffer.wrap(tableArr);
@@ -291,6 +349,12 @@ public class Catalog {
 
     //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
     //  enum: {primary 0 1}
+
+    /**
+     * Method converts table object to byte array of table
+     * @param table table object
+     * @return byte array of table object
+     */
     public byte[] convertTableToByteArr(Table table) {
 
         ByteBuffer result = ByteBuffer.allocate(0);
@@ -362,12 +426,18 @@ public class Catalog {
 
     }
 
+
+    /**
+     * Method appends byte buffer
+     * @param current current byte buffer
+     * @param arr byte arry
+     * @return the byte buffer that appends the byte array
+     */
     public static ByteBuffer appendByteBuffer(ByteBuffer current, byte[] arr) {
         ByteBuffer result = ByteBuffer.allocate(current.capacity() + arr.length);
         result.put(current.array(), 0, current.array().length);
         result.put(arr, 0, arr.length);
         return result;
     }
-
 
 }

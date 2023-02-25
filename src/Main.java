@@ -2,6 +2,11 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+/**
+ * CSCI420 Project - Phase 1
+ * Group 3
+ */
+
 public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -79,6 +84,7 @@ public class Main {
                 Table table = pageBuffer.getStorageManager().getTableByName(optionArr[2]);
                 if (table != null) {
                     pageBuffer.getCatalog().displayInfoTable(table);
+                    System.out.println("\nSUCCESS");
                 }
 
             } else if (optionArr[0].equals("create") && optionArr[1].equals("table") && optionArr.length > 3) {
@@ -144,6 +150,9 @@ public class Main {
                     if (record != null) {
                         System.out.println(pageBuffer.getRecordByPrimary(record));
                         System.out.println("\nSUCCESS");
+                    } else {
+                        System.err.println("No record with that primary key");
+                        System.err.println("ERROR");
                     }
                 } else {
                     System.err.println("No such table " + optionArr[6]);
@@ -157,6 +166,9 @@ public class Main {
         }
     }
 
+    /**
+     * Method displays the command list
+     */
     public static void displayCommand() {
         System.out.println("List of commands:");
         System.out.println("    display schema;");

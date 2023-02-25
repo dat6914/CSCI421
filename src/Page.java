@@ -5,10 +5,16 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 
+/**
+ * CSCI420 Project - Phase 1
+ * Group 3
+ */
 
+/**
+ * This class is to store the list of record and the table that the page belongs to
+ * and the actual size of this page
+ */
 public class Page {
     private int pageID;
     private ArrayList<Record> record_list = new ArrayList<>();
@@ -25,39 +31,81 @@ public class Page {
         this.current_page_size = computeCurrentPagesize(record_list);
     }
 
+
+    /**
+     * Method gets table of the page
+     * @return table of page
+     */
     public Table getTable() {
         return this.table;
     }
 
+
+    /**
+     * Method gets the current size of page
+     * @return the current page size
+     */
     public int getCurrent_page_size() {
         return this.current_page_size;
     }
 
+
+    /**
+     * Method compute the current page size
+     * @param record_list arraylist of records
+     * @return the current page size
+     */
     public int computeCurrentPagesize(ArrayList<Record> record_list) {
         int result = 0;
         result = result + 4;
         for (Record record : record_list) {
-            result = result + record.getValuesList().size();
+            result = result + record.getValuesList().size() + 8 + convertRecordToByteArr(record, this.table).length;
         }
-
-        result = result + record_list.size()*8;
 
         return result;
     }
 
-    public void incCurrentPageSize(Record record){
-        this.current_page_size = this.current_page_size + record.getValuesList().size() + 8;
+    /**
+     * Method increases the current page size when insert a record
+     * @param record record is inserted
+     * @param recordByteArr byte[] of record
+     */
+    public void incCurrentPageSize(Record record, byte[] recordByteArr){
+        this.current_page_size = this.current_page_size + record.getValuesList().size() + 8 + recordByteArr.length;
     }
 
+    /**
+     * Method gets page ID
+     * @return page ID
+     */
     public int getPageID() {
         return this.pageID;
     }
 
+    /**
+     * Method decreases the current page size when insert a record
+     * @param record record is removed
+     * @param recordByteArr byte[] of record
+     */
+    public void decCurrentPageSize(Record record, byte[] recordByteArr) {
+        this.current_page_size = this.current_page_size - record.getValuesList().size() - 8 - recordByteArr.length;
+    }
 
+    /**
+     * Method gets the list of records
+     * @return arraylist of records
+     */
     public ArrayList<Record> getRecordList() {
         return this.record_list;
     }
 
+
+    /**
+     * Methods gets the list of records from a particular page from a given table
+     * @param pageID page ID
+     * @param table table
+     * @return Arraylist of record
+     */
     public ArrayList<Record> getRecordListFromPage(int pageID, Table table){
         String pagePath = this.DBLocation + "/Pages/" + pageID + ".txt";
         File file = new File(pagePath);
@@ -69,6 +117,11 @@ public class Page {
         }
     }
 
+    /**
+     * Method read the page file
+     * @param path path of page file
+     * @return byte array of page file
+     */
     public static byte[] readPageFile(String path) {
         try {
             File file = new File(path);
@@ -85,6 +138,12 @@ public class Page {
         }
     }
 
+
+    /**
+     * Method checks if two pages are equals
+     * @param obj other page
+     * @return true if equals, otherwise false
+     */
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof Page)
@@ -92,14 +151,19 @@ public class Page {
         return false;
     }
 
+    /**
+     * Method converts Page to byte array
+     * @param record_list arraylist of records in a page
+     * @param table table that the page belongs to
+     * @param page_size the page size
+     * @return byte array of page
+     */
     public byte[] convertPageToByteArr(ArrayList<Record> record_list, Table table, int page_size) {
-        //int currentPageSize = 4;
         int indextracking = 0;
         int numRecord = record_list.size();
         byte[] result = new byte[page_size];
         byte[] numRecordArr = ByteBuffer.allocate(4).putInt(numRecord).array();
         System.arraycopy(numRecordArr, 0, result, indextracking, numRecordArr.length);
-        //currentPageSize = currentPageSize + numRecordArr.length;
         indextracking = indextracking + numRecordArr.length;
         int indexReverse = page_size;
         for (int i = 0; i < numRecord; i++) {
@@ -109,32 +173,27 @@ public class Page {
             indexReverse = indexReverse - length;
             byte[] offSetArr = ByteBuffer.allocate(4).putInt(indexReverse).array();
             System.arraycopy(offSetArr, 0, result, indextracking, offSetArr.length);
-            //urrentPageSize = currentPageSize + offSetArr.length;
             indextracking = indextracking + 4;
 
             byte[] lengthArr = ByteBuffer.allocate(4).putInt(length).array();
             System.arraycopy(lengthArr, 0, result, indextracking, lengthArr.length);
-            //currentPageSize = currentPageSize + lengthArr.length;
             indextracking = indextracking + 4;
 
             System.arraycopy(recordArr, 0, result, indexReverse , recordArr.length);
-            //currentPageSize = currentPageSize + recordArr.length;
         }
-        //byte[] curPageSize = ByteBuffer.allocate(4).putInt(currentPageSize).array();
-        //System.arraycopy(curPageSize, 0, result, 0, curPageSize.length);
-
-//        if (currentPageSize > page_size) {
-//            System.err.println("The records size is more than page size");
-//            System.err.println("ERROR");
-//            return null;
-//        }
         return result;
     }
 
+
+    /**
+     * Method converts byte array of page to arraylist of records
+     * @param byteArr byte array of page
+     * @param table table that page belongs to
+     * @return arraylist of records
+     */
     public ArrayList<Record> convertByteArrToPage(byte[] byteArr, Table table) {
         ArrayList<Record> recordArrayList = new ArrayList<>();
         ByteBuffer byteBuffer = ByteBuffer.wrap(byteArr);
-        //int pageSize = byteBuffer.getInt(0);
         int recordNum = byteBuffer.getInt(0);
         int indextracking = 4;
 
@@ -148,7 +207,6 @@ public class Page {
             Record record = convertByteArrToRecord(recordArr, table);
             recordArrayList.add(record);
         }
-
         return recordArrayList;
     }
 
@@ -157,6 +215,7 @@ public class Page {
     //  "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
     //FORMAT: ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true)
     //  "Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true
+
     /**
      * This method converts byte array of record in a table to record object
      * @param record byte array of record
@@ -217,7 +276,6 @@ public class Page {
                 return null;
             }
         }
-
         Record res = new Record(valuesList);
         return res;
     }
@@ -227,8 +285,9 @@ public class Page {
     //  "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
     //  FORMAT: ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true)
     //  "Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true
+
     /**
-     * This method convert record object of a table to byte[]
+     * This method converts record object of a table to byte[]
      * @param record record object need to be converted to byte[]
      * @param table table object that the record belongs to
      * @return byte[] of record including checking attribute types
@@ -329,6 +388,7 @@ public class Page {
         return result.array();
     }
 
+
     /**
      * This method checks if a string is an integer or not
      * @param str string needs to be checks
@@ -343,6 +403,7 @@ public class Page {
         }
     }
 
+
     /**
      * This method appends the byte array to the current ByteBuffer
      * @param current the current ByteBuffer
@@ -355,7 +416,4 @@ public class Page {
         result.put(arr, 0, arr.length);
         return result;
     }
-
-
-
 }
