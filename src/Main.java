@@ -37,6 +37,10 @@ public class Main {
             }
 
             String pathPage = db_loc + "/Pages";
+            File pathDir = new File(pathPage);
+            if (!pathDir.exists()) {
+                pathDir.mkdir();
+            }
             File directPage = new File(pathPage);
             if (!directPage.exists()) {
                 boolean created = directPage.mkdir();
