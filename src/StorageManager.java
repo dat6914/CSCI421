@@ -113,15 +113,16 @@ public class StorageManager {
             }
         }
 
+        System.out.println(table);
         //loop through the rest of the input
         for (int i = 3; i < table.length; i++) {
             String inStr = table[i];
-
+            System.out.println("inStr: " + inStr);
             //index of datatype before "primarykey" is even
             if (i < indexOfprimaryKey) {
                 if (i%2 == 0) {
                     if (!(inStr.equals("integer") || inStr.equals("double") ||inStr.equals("boolean")
-                            || inStr.contains("var(") || inStr.contains("char("))) {
+                            || inStr.substring(0,8).equals("varchar(") || inStr.substring(0,5).equals("char("))) {
                         System.err.println("This " + inStr + " is NOT a datatype!");
                         System.err.println("ERROR");
                         return null;
@@ -135,7 +136,8 @@ public class StorageManager {
             } else {
                 if (i%2 != 0) {
                     if (!(inStr.equals("integer") || inStr.equals("double") ||inStr.equals("boolean")
-                            || inStr.contains("var(") || inStr.contains("char("))) {
+                            || inStr.substring(0,8).equals("varchar(") || inStr.substring(0,5).equals("char("))) {
+
                         System.err.println("This " + inStr + " is NOT a datatype!");
                         System.err.println("ERROR");
                         return null;

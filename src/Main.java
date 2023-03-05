@@ -108,9 +108,7 @@ public class Main {
                 break;
 
             } else if (optionArr[0].equals("insert") && optionArr[1].equals("into") && optionArr[3].equals("values") && optionArr.length >= 5) {
-                if (pageBuffer.insertRecordToTable(input, optionArr[2])) {
-                    System.out.println("\nSUCCESS");
-                }
+                pageBuffer.insertRecordToTable(input, optionArr[2]);
 
             } else if (optionArr[0].equals("select") && optionArr[1].equals("*") && optionArr[2].equals("from") && optionArr.length == 4) {
                 if (optionArr[3].charAt(optionArr[3].length()-1) == ';') {

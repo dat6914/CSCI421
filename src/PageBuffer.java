@@ -84,8 +84,10 @@ public class PageBuffer {
             Table table = this.storageManager.getTableByName(tablename);
             if (table != null) {
                 int indexOfPrimaryKey = getIndexOfColumn(table.getPrimaryKeyName(), table);
-                ArrayList<String[]> stringArrRecordList = returnListofStringArrRecord(inp);
-                ArrayList<Record> recordArrayList = convertStringToRecordList(stringArrRecordList, table);
+                int startIndex = inp.indexOf("(");
+                inp = inp.substring(startIndex, inp.length()-1);
+                ArrayList<Record> recordArrayList = returnListofStringArrRecord(inp, table);
+                //ArrayList<Record> recordArrayList = convertStringToRecordList(stringArrRecordList, table);
                 if (recordArrayList != null) {
                     for (Record record : recordArrayList) {
                         boolean insertAlready = false;
@@ -144,7 +146,7 @@ public class PageBuffer {
 
                                 for (int i = 0; i < page.getRecordList().size(); i++) {
                                     Record tempRecord = page.getRecordList().get(i);
-                                    Object recordPrimaryValue = record.getValuesList().get(indexOfPrimaryKey);
+                                    Object recordPrimaryValue =  record.getValuesList().get(indexOfPrimaryKey);
                                     Object tempRecordPrimaryValue = tempRecord.getValuesList().get(indexOfPrimaryKey);
                                     int compare = compare2Records(recordPrimaryValue, tempRecordPrimaryValue);
                                     if (compare == 0) {
@@ -153,14 +155,17 @@ public class PageBuffer {
                                         return false;
                                     }
 
+                                    // if primary key of new record does not duplicate
                                     if (compare < 0) {
                                         page.getRecordList().add(i, record);
                                         page.incCurrentPageSize(record, page.convertRecordToByteArr(record, table));
                                         table.increaseNumRecordBy1();
                                         int currentPagesize = page.getCurrent_page_size();
+                                        //check if page overflows
                                         if (currentPagesize > this.page_size) {
                                             int midpoint = page.getRecordList().size() / 2;
                                             ArrayList<Record> halfRecord = new ArrayList<>();
+                                            // haldRecord stores the second half of the page when it overflows
                                             for (int j = midpoint; j < page.getRecordList().size(); j++) {
                                                 halfRecord.add(page.getRecordList().get(j));
                                             }
@@ -169,14 +174,19 @@ public class PageBuffer {
                                             Page newPage = new Page(getPageIDList().size() + 1, table, this.db_loc);
                                             newPage.getRecordList().addAll(halfRecord);
 
+                                            //decrement page 1 size after splitting
+                                            //increment those into page 2
                                             for (Record rec : halfRecord) {
                                                 page.decCurrentPageSize(rec, page.convertRecordToByteArr(rec, table));
                                                 newPage.incCurrentPageSize(rec, newPage.convertRecordToByteArr(rec, table));
                                             }
 
+                                            //add new page into buffer
                                             this.pagelistBuffer.add(newPage);
+                                            //check if buffer full
                                             checkIfBufferFull(table);
                                             ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
+                                            //add the new page into the table in catalog
                                             for (Table tbl : tableListInCatalog) {
                                                 if (tbl.getTableName().equals(table.getTableName())) {
                                                     tbl.getPageID_list().add(m + 1, newPage.getPageID());
@@ -221,13 +231,25 @@ public class PageBuffer {
                                 ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
                                 for (Table tbl : tableListInCatalog) {
                                     if (tbl.getTableName().equals(table.getTableName())) {
-                                        tbl.getPageID_list().add(tableListInCatalog.size() + 1, newPage.getPageID());
+                                        tbl.getPageID_list().add(newPage.getPageID());
+                                        break;
+                                        //tbl.getPageID_list().add(tableListInCatalog.size() + 1, newPage.getPageID());
                                     }
                                 }
                             }
                         }
                     }
-                    return recordArrayList.size() == stringArrRecordList.size();
+
+                    if (inp.split(",").length == recordArrayList.size()){
+                        System.out.println("All record inserted.");
+                        return true;
+                    }else if(recordArrayList.size()>0){
+                        System.out.println("The first " + recordArrayList.size() + " record has been inserted.");
+                        return false;
+                    }else{
+                        return false;
+                    }
+
                 }
             }
             return false;
@@ -275,6 +297,7 @@ public class PageBuffer {
     public ArrayList<Record> convertStringToRecordList(ArrayList<String[]> recordList, Table table) {
         ArrayList<Record> recordArrayList = new ArrayList<>();
         ArrayList<String> attriNameList = table.getAttriName_list();
+
         for (String[] stringarry : recordList) {
             if (stringarry.length != attriNameList.size()) {
                 System.err.println("Number of attributes don't match. Expect " + attriNameList.size() + " attributes");
@@ -307,15 +330,16 @@ public class PageBuffer {
         int indexOfPrimaryKey = getIndexOfColumn(primaryKey, table);
         for (int i = 0; i < strArr.length; i++) {
             char attrType = attriTypeList.get(i).charAt(0);
-            if (attrType == '2') {
-                if (i == indexOfPrimaryKey) {
-                    String value = strArr[i];
-                    if (value.equalsIgnoreCase("null")) {
-                        System.err.println("Primary key can't be null");
-                        System.err.println("ERROR");
-                        return null;
-                    }
+            System.out.println(attrType);
+            if (i == indexOfPrimaryKey) {
+                String value = strArr[i];
+                if (value.equalsIgnoreCase("null")) {
+                    System.err.println("Primary key can't be null");
+                    System.err.println("ERROR");
+                    return null;
                 }
+            }
+            if (attrType == '2') {
                 if (isBoolean(strArr[i])) {
                     Object valueObj = strArr[i].equalsIgnoreCase("true") ? Boolean.TRUE :
                             strArr[i].equalsIgnoreCase("false") ? Boolean.FALSE : null;
@@ -344,11 +368,18 @@ public class PageBuffer {
                     return null;
                 }
             } else if (attrType == '5') {
+                if(!strArr[i].substring(0,1).equals("\"") || !strArr[i].substring(strArr[i].length()-1, strArr[i].length()).equals("\"")){
+                    System.err.println("Expect quotations for string values");
+                    System.err.println("ERROR");
+                    return null;
+                }
+                strArr[i] = strArr[i].substring(1, strArr[i].length()-1);
+
                 String sizeString = attriTypeList.get(i).substring(1);
                 if (isInteger(sizeString)) {
                     int size = Integer.parseInt(sizeString);
                     int inputSize = strArr[i].length();
-                    if (inputSize > size) {
+                    if (inputSize != size) {
                         System.err.println("Expect " + strArr[i] + " has " + size + " chars but got " + inputSize + " chars");
                         System.err.println("ERROR");
                         return null;
@@ -357,6 +388,14 @@ public class PageBuffer {
                     }
                 }
             } else if (attrType == '6') {
+                if(!strArr[i].substring(0,1).equals("\"") || !strArr[i].substring(strArr[i].length()-1, strArr[i].length()).equals("\"")){
+                    System.err.println("Expect quotations for string values");
+                    System.err.println("ERROR");
+                    return null;
+                }
+                // take out the quote in the front and at the end.
+                strArr[i] = strArr[i].substring(1, strArr[i].length()-1);
+
                 String sizeString = attriTypeList.get(i).substring(1);
                 if (isInteger(sizeString)) {
                     int size = Integer.parseInt(sizeString);
@@ -403,27 +442,28 @@ public class PageBuffer {
 
     /**
      * Method return the input record string to the list of string array
-     * @param inp record string input
+     * @param inputTupesList record string input
      * @return arraylist of array string (one string[] is the record string)
      */
-    public ArrayList<String[]> returnListofStringArrRecord(String inp) {
-        ArrayList<String[]> recordList = new ArrayList<>();
-        int startIndex = inp.indexOf("(");
-        String inputTupesList = inp.substring(startIndex);
-        if (inputTupesList.substring(inputTupesList.length()-2).equalsIgnoreCase(");")) {
-            inputTupesList = inputTupesList.substring(0, inputTupesList.length() - 1);
-        }
-        String[] splitString = splitString(inputTupesList);
+    public ArrayList<Record> returnListofStringArrRecord(String inputTupesList, Table table) {
+        ArrayList<Record> recordList = new ArrayList<>();
+        String[] splitString = inputTupesList.split(",");
 
         for (String str : splitString) {
-            String tuple = removeFirstAndLastChar(str);
-            String[] tupleArr = splitStringBySpaceButNotQuote(tuple);
-            for (int i = 0; i < tupleArr.length; i++) {
-                if (tupleArr[i].equals(" ")) {
-                    this.getStorageManager().removeElementInStringArray(tupleArr, i);
-                }
+            if(!str.substring(0,1).equals("(") || !str.substring(str.length()-1, str.length()).equals(")")){
+                return null;
             }
-            recordList.add(tupleArr);
+            String tupleAfterRemoveParenthesis = removeFirstAndLastChar(str);
+            String[] tupleSplitBySpace = tupleAfterRemoveParenthesis.split(" ");
+            if(tupleSplitBySpace.length!=table.getAttriName_list().size()){
+                // number of attributes don't match
+                return null;
+            }
+
+            Record r = convertStringArrToRecord(tupleSplitBySpace, table);
+            if (r != null){
+                recordList.add(r);
+            }
         }
         return recordList;
     }
@@ -500,58 +540,6 @@ public class PageBuffer {
             return input.substring(1, input.length() - 1);
         }
         return input;
-    }
-
-
-    /**
-     * Method splits the insert SQL string
-     * @param input insert SQL string
-     * @return array of string
-     */
-    private static String[] splitString(String input) {
-        List<String> result = new ArrayList<>();
-        boolean inQuote = false;
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < input.length(); i++) {
-            char c = input.charAt(i);
-            if (c == '"') {
-                inQuote = !inQuote;
-                sb.append(c);
-            } else if (c == ',' && !inQuote) {
-                result.add(sb.toString().trim());
-                sb = new StringBuilder();
-            } else {
-                sb.append(c);
-            }
-        }
-        result.add(sb.toString().trim());
-        return result.toArray(new String[0]);
-    }
-
-
-    /**
-     * Method splits a string by space but not quote
-     * @param input string input
-     * @return string array after splitting
-     */
-    private static String[] splitStringBySpaceButNotQuote(String input) {
-        List<String> result = new ArrayList<>();
-        StringBuilder sb = new StringBuilder();
-        boolean inQuote = false;
-        for (int i = 0; i < input.length(); i++) {
-            char c = input.charAt(i);
-            if (c == '\"') {
-                inQuote = !inQuote;
-                continue;
-            } else if (c == ' ' && !inQuote) {
-                result.add(sb.toString());
-                sb = new StringBuilder();
-                continue;
-            }
-            sb.append(c);
-        }
-        result.add(sb.toString());
-        return result.toArray(new String[0]);
     }
 
 
