@@ -122,7 +122,7 @@ public class StorageManager {
             if (i < indexOfprimaryKey) {
                 if (i%2 == 0) {
                     if (!(inStr.equals("integer") || inStr.equals("double") ||inStr.equals("boolean")
-                            || inStr.substring(0,8).equals("varchar(") || inStr.substring(0,5).equals("char("))) {
+                            || inStr.startsWith("varchar(") || inStr.startsWith("char("))) {
                         System.err.println("This " + inStr + " is NOT a datatype!");
                         System.err.println("ERROR");
                         return null;
@@ -136,8 +136,7 @@ public class StorageManager {
             } else {
                 if (i%2 != 0) {
                     if (!(inStr.equals("integer") || inStr.equals("double") ||inStr.equals("boolean")
-                            || inStr.substring(0,8).equals("varchar(") || inStr.substring(0,5).equals("char("))) {
-
+                            || inStr.startsWith("char(") || inStr.startsWith("varchar("))) {
                         System.err.println("This " + inStr + " is NOT a datatype!");
                         System.err.println("ERROR");
                         return null;
