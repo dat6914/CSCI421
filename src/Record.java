@@ -14,15 +14,12 @@ public class Record {
 
     private ArrayList<Object> valuesList;
 
-    private ArrayList<Pointer> pointers = new ArrayList<>();
-
     /**
      * Constructor of Record
      * @param valuesList the arraylist of values
      */
-    public Record(ArrayList<Object> valuesList, ArrayList<Pointer> pointers) {
+    public Record(ArrayList<Object> valuesList) {
         this.valuesList = valuesList;
-        this.pointers = pointers;
 
     }
 

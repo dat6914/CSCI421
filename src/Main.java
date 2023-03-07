@@ -64,8 +64,8 @@ public class Main {
         System.out.println("Page Size: " + page_size);
         System.out.println("Buffer Size: " + buffer_size);
 
-        StorageManager storageManager = new StorageManager(db_loc, page_size,buffer_size);
-        //PageBuffer pageBuffer = new PageBuffer(db_loc, page_size, buffer_size);
+        //StorageManager storageManager = new StorageManager(db_loc, page_size, buffer_size);
+        PageBuffer pageBuffer = new PageBuffer(db_loc, page_size, buffer_size);
 
 
         System.out.println("----------------------------------------------");
@@ -78,26 +78,26 @@ public class Main {
             String input = scanner.nextLine();
             String[] optionArr = input.split(" ");
             if (input.equals("display schema;")) {
-                Catalog catalog = storageManager.getCatalog();
-                storageManager.getCatalog().displaySchema(args[0], page_size, buffer_size, catalog);
+                Catalog catalog = pageBuffer.getCatalog();
+                pageBuffer.getCatalog().displaySchema(args[0], page_size, buffer_size, catalog);
 
             } else if (optionArr[0].equals("display") && optionArr[1].equals("info") && optionArr.length == 3) {
                 if (optionArr[2].charAt(optionArr[2].length()-1) == ';') {
                     optionArr[2] = optionArr[2].substring(0, optionArr[2].length() - 1);
                 }
-                Table table = storageManager.getTableByName(optionArr[2]);
+                Table table = pageBuffer.getStorageManager().getTableByName(optionArr[2]);
                 if (table != null) {
-                    storageManager.getCatalog().displayInfoTable(table);
+                    pageBuffer.getCatalog().displayInfoTable(table);
                     System.out.println("\nSUCCESS");
                 }
 
             } else if (optionArr[0].equals("create") && optionArr[1].equals("table") && optionArr.length > 3) {
-                if (storageManager.createTable(input) != null) {
+                if (pageBuffer.getStorageManager().createTable(input) != null) {
                     System.out.println("\nSUCCESS");
                 }
 
             } else if (input.equals("<quit>")) {
-                if (storageManager.getPageBuffer().quitProgram(storageManager, storageManager.getPageBuffer().getPageList())) {
+                if (pageBuffer.quitProgram(pageBuffer.getStorageManager(), pageBuffer.getPagelistBuffer())) {
                     System.out.println("Safely shutting down the database...");
                     System.out.println("Writing pages in the page buffer successfully...");
                     System.out.println("Saving catalog successfully...");;
@@ -108,15 +108,15 @@ public class Main {
                 break;
 
             } else if (optionArr[0].equals("insert") && optionArr[1].equals("into") && optionArr[3].equals("values") && optionArr.length >= 5) {
-                storageManager.insertRecordToTable(input, optionArr[2]);
+                pageBuffer.insertRecordToTable(input, optionArr[2]);
 
             } else if (optionArr[0].equals("select") && optionArr[1].equals("*") && optionArr[2].equals("from") && optionArr.length == 4) {
                 if (optionArr[3].charAt(optionArr[3].length()-1) == ';') {
                     optionArr[3] = optionArr[3].substring(0, optionArr[3].length() - 1);
                 }
-                Table table = storageManager.getTableByName(optionArr[3]);
+                Table table = pageBuffer.getStorageManager().getTableByName(optionArr[3]);
                 if (table != null) {
-                    storageManager.selectStarFromTable(table);
+                    pageBuffer.selectStarFromTable(table);
                     System.out.println("\nSUCCESS");
                 }
 
@@ -126,10 +126,10 @@ public class Main {
                 if (optionArr[5].charAt(optionArr[5].length()-1) == ';') {
                     optionArr[5] = optionArr[5].substring(0, optionArr[5].length() - 1);
                 }
-                Table table = storageManager.getTableByName(optionArr[5]);
+                Table table = pageBuffer.getStorageManager().getTableByName(optionArr[5]);
                 if (isInteger(optionArr[2])) {
                     if (table != null) {
-                        if (storageManager.getPageByTableAndPageNumber(table, Integer.parseInt(optionArr[2]))) {
+                        if (pageBuffer.getPageByTableAndPageNumber(table, Integer.parseInt(optionArr[2]))) {
                             System.out.println("\nSUCCESS");
                         }
                     } else {
@@ -146,11 +146,11 @@ public class Main {
                 if (optionArr[6].charAt(optionArr[6].length()-1) == ';') {
                     optionArr[6] = optionArr[6].substring(0, optionArr[6].length() - 1);
                 }
-                Table table = storageManager.getTableByName(optionArr[3]);
+                Table table = pageBuffer.getStorageManager().getTableByName(optionArr[3]);
                 if (table != null) {
-                    Record record = storageManager.getRecordByPrimaryKey(optionArr[6], table);
+                    Record record = pageBuffer.getRecordByPrimaryKey(optionArr[6], table);
                     if (record != null) {
-                        System.out.println(storageManager.getRecordByPrimary(record));
+                        System.out.println(pageBuffer.getRecordByPrimary(record));
                         System.out.println("\nSUCCESS");
                     } else {
                         System.err.println("No record with that primary key");

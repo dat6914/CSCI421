@@ -38,11 +38,10 @@ public class Table {
      */
     public int getRecordNum (ArrayList<Integer> pageID_list) {
         int result = 0;
-        ArrayList<Pointer> pointerHolder = new ArrayList<>();
 
         for (int i = 0; i < pageID_list.size(); i++) {
             int index = pageID_list.get(i);
-            Page page = new Page(index, this, this.db_loc,pointerHolder);
+            Page page = new Page(index, this, this.db_loc);
             result =  result + page.getRecordList().size();
         }
         return result;

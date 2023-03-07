@@ -1,4 +1,3 @@
-import java.awt.geom.AffineTransform;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -24,15 +23,12 @@ public class Page {
     private int current_page_size;
     private String DBLocation;
 
-    private ArrayList<Pointer> pointers = new ArrayList<>();
-
-    public Page(int pageID, Table table, String DBLocation,ArrayList<Pointer> pointers) {
+    public Page(int pageID, Table table, String DBLocation) {
         this.pageID = pageID;
         this.table = table;
         this.DBLocation = DBLocation;
         this.record_list = getRecordListFromPage(pageID, table);
         this.current_page_size = computeCurrentPagesize(record_list);
-        this.pointers = pointers;
     }
 
 
@@ -280,8 +276,7 @@ public class Page {
                 return null;
             }
         }
-        ArrayList<Pointer> pointerholder = new ArrayList<>();
-        Record res = new Record(valuesList,pointerholder);
+        Record res = new Record(valuesList);
         return res;
     }
 
@@ -421,31 +416,4 @@ public class Page {
         result.put(arr, 0, arr.length);
         return result;
     }
-
-    private static int getIndexOfColumn(String attrName, Table table) {
-        ArrayList<String> attriName_list = table.getAttriName_list();
-        int index = -1;
-        for (int i = 0; i < attriName_list.size(); i++) {
-            if (attriName_list.get(i).equals(attrName)) {
-                index = i;
-            }
-        }
-        return index;
-    }
-
-    public int compare2Records(Object o1, Object o2) {
-        if (o1 instanceof Integer && o2 instanceof Integer) {
-            return ((Integer) o1).compareTo((Integer) o2);
-        } else if (o1 instanceof Double && o2 instanceof Double) {
-            return ((Double) o1).compareTo((Double) o2);
-        } else if (o1 instanceof String && o2 instanceof String) {
-            return ((String) o1).compareTo((String) o2);
-        } else if (o1 instanceof Boolean && o2 instanceof Boolean) {
-            return ((Boolean) o1).compareTo((Boolean) o2);
-        } else {
-            // Objects of different types should be considered equal
-            return 0;
-        }
-    }
-
 }
