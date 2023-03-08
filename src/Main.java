@@ -36,7 +36,7 @@ public class Main {
                 //System.out.println("Database directory already exists!");
             }
 
-            String pathPage = db_loc + "/Pages";
+            String pathPage = db_loc + "/Tables";
             File pathDir = new File(pathPage);
             if (!pathDir.exists()) {
                 pathDir.mkdir();

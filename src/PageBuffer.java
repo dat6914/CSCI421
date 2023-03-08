@@ -60,8 +60,9 @@ public class PageBuffer {
             this.storageManager.writeByteArrToDisk(catalogPath, catalogByteArr);
             for (int i = 0; i < pagelistBuffer.size(); i++) {
                 Page pageToWrite = pagelistBuffer.get(i);
+                String tableName = pageToWrite.getTable().getTableName();
                 byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite.getRecordList(), pageToWrite.getTable(), this.page_size);
-                String path = this.db_loc  + "/Pages/" + pageToWrite.getPageID() + ".txt";
+                String path = this.db_loc  + "/Tables/" + tableName + ".txt";
                 this.storageManager.writeByteArrToDisk(path, byteArr);
             }
         } else {
@@ -271,7 +272,8 @@ public class PageBuffer {
         if (this.pagelistBuffer.size() > this.bufferSize) {
             Page pageToWrite = this.pagelistBuffer.get(0);
             byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite.getRecordList(), table, this.page_size);
-            String path = this.db_loc + "/Pages/" + pageToWrite.getPageID() + ".txt";
+            String tableName = pageToWrite.getTable().getTableName();
+            String path = this.db_loc + "/Tables/" + tableName + ".txt";
             this.storageManager.writeByteArrToDisk(path, byteArr);
             this.pagelistBuffer.remove(0);
         }
