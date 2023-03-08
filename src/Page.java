@@ -107,9 +107,11 @@ public class Page {
      * @return Arraylist of record
      */
     public ArrayList<Record> getRecordListFromPage(int pageID, Table table){
-        String pagePath = this.DBLocation + "/Pages/" + pageID + ".txt";
+        String pagePath = this.DBLocation + "/Table/" + table.getTableName() + ".txt";
         File file = new File(pagePath);
         if (file.exists()) {
+            //todo: do deserialize on table -> deserialize page -> find record list using page ID
+            //todo: change return
             byte[] pageArr = readPageFile(pagePath);
             return convertByteArrToPage(pageArr, table);
         } else {
