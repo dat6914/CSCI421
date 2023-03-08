@@ -1,5 +1,6 @@
+package Main;
+
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * CSCI420 Project - Phase 1
@@ -39,7 +40,7 @@ public class PageBuffer {
 
 
     /**
-     * Method gets Catalog
+     * Method gets Main.Catalog
      * @return catalog
      */
     public Catalog getCatalog() {
@@ -60,8 +61,13 @@ public class PageBuffer {
             this.storageManager.writeByteArrToDisk(catalogPath, catalogByteArr);
             for (int i = 0; i < pagelistBuffer.size(); i++) {
                 Page pageToWrite = pagelistBuffer.get(i);
-                String tableName = pageToWrite.getTable().getTableName();
-                byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite.getRecordList(), pageToWrite.getTable(), this.page_size);
+                Table table = pageToWrite.getTable();
+                String tableName = table.getTableName();
+
+                byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite, table, this.page_size);
+
+                byte[] tableByteArray = table.serializeTable(pageToWrite, table);
+                //TODO Serialize entire table. First element is # of page. Second is arrayList of pointers.
                 String path = this.db_loc  + "/Tables/" + tableName + ".txt";
                 this.storageManager.writeByteArrToDisk(path, byteArr);
             }
@@ -88,7 +94,7 @@ public class PageBuffer {
                 int startIndex = inp.indexOf("(");
                 inp = inp.substring(startIndex, inp.length()-1);
                 ArrayList<Record> recordArrayList = returnListofStringArrRecord(inp, table);
-                //ArrayList<Record> recordArrayList = convertStringToRecordList(stringArrRecordList, table);
+                //ArrayList<Main.Record> recordArrayList = convertStringToRecordList(stringArrRecordList, table);
                 if (recordArrayList != null) {
                     for (Record record : recordArrayList) {
                         boolean insertAlready = false;
@@ -271,7 +277,7 @@ public class PageBuffer {
     private void checkIfBufferFull(Table table) {
         if (this.pagelistBuffer.size() > this.bufferSize) {
             Page pageToWrite = this.pagelistBuffer.get(0);
-            byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite.getRecordList(), table, this.page_size);
+            byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite, table, this.page_size);
             String tableName = pageToWrite.getTable().getTableName();
             String path = this.db_loc + "/Tables/" + tableName + ".txt";
             this.storageManager.writeByteArrToDisk(path, byteArr);
@@ -420,7 +426,8 @@ public class PageBuffer {
                 return null;
             }
         }
-        return new Record(valuesList);
+        //TODO
+        return new Record(valuesList, new ArrayList<String>());
     }
 
 
@@ -619,7 +626,7 @@ public class PageBuffer {
 
 
     /**
-     * Method prints out the Record
+     * Method prints out the Main.Record
      * @param record record needs to be printed out
      * @return String of record
      */

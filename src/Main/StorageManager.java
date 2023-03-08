@@ -1,7 +1,8 @@
+package Main;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
@@ -26,7 +27,7 @@ public class StorageManager {
     }
 
     /**
-     * Method returns the Catalog Object
+     * Method returns the Main.Catalog Object
      * @return catalog
      */
     public Catalog getCatalog() {
@@ -36,7 +37,7 @@ public class StorageManager {
 
     // Given a input string:
     // "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean);"
-    // check all the possible error and then parse the string to Table Object
+    // check all the possible error and then parse the string to Main.Table Object
     // add the table to the table list
 
     /**
@@ -98,7 +99,7 @@ public class StorageManager {
             return null;
         }
 
-        //variables for create new Table: table name, primarykeyName, attriNameList, attriTypeList
+        //variables for create new Main.Table: table name, primarykeyName, attriNameList, attriTypeList
         String nameTable = table[2];
         String primarykeyName = "";
         ArrayList<String> attriNameList = new ArrayList<>();
@@ -107,7 +108,7 @@ public class StorageManager {
         // check if the table already exists
         for (Table tbl : this.catalog.getTablesList()) {
             if (tbl.getTableName().equals(nameTable)) {
-                System.err.println("Table of name " + nameTable + " already exists.");
+                System.err.println("Main.Table of name " + nameTable + " already exists.");
                 System.err.println("ERROR");
                 return null;
             }
@@ -327,7 +328,7 @@ public class StorageManager {
     /**
      * Method get table by table name
      * @param tableName table name
-     * @return Table
+     * @return Main.Table
      */
     public Table getTableByName(String tableName) {
         ArrayList<Table> tableArrayList = this.catalog.getTablesList();
@@ -374,7 +375,6 @@ public class StorageManager {
         }
         return newArray;
     }
-
 
     //TODO
     public boolean deleteRecord(String primaryKeyValue, String tableName) {

@@ -1,3 +1,5 @@
+package Main;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -22,6 +24,7 @@ public class Page {
     private Table table;
     private int current_page_size;
     private String DBLocation;
+    private ArrayList<Pointer> pointerList;
 
     public Page(int pageID, Table table, String DBLocation) {
         this.pageID = pageID;
@@ -56,13 +59,15 @@ public class Page {
      * @return the current page size
      */
     public int computeCurrentPagesize(ArrayList<Record> record_list) {
-        int result = 0;
-        result = result + 4;
+
+        int size = 0;
+        size = size + Integer.BYTES;
+        int pointerSize = Integer.BYTES * 2;
         for (Record record : record_list) {
-            result = result + record.getValuesList().size() + 8 + convertRecordToByteArr(record, this.table).length;
+            size = size + record.getValuesList().size() + 8 + convertRecordToByteArr(record, this.table).length;
         }
 
-        return result;
+        return size;
     }
 
     /**
@@ -99,6 +104,9 @@ public class Page {
         return this.record_list;
     }
 
+    public ArrayList<Pointer> getPointerList(){
+        return this.pointerList;
+    }
 
     /**
      * Methods gets the list of records from a particular page from a given table
@@ -154,22 +162,27 @@ public class Page {
     }
 
     /**
-     * Method converts Page to byte array
-     * @param record_list arraylist of records in a page
+     * Method converts Main.Page to byte array
+     * @param page
      * @param table table that the page belongs to
      * @param page_size the page size
      * @return byte array of page
      */
-    public byte[] convertPageToByteArr(ArrayList<Record> record_list, Table table, int page_size) {
+    public byte[] convertPageToByteArr(Page page, Table table, int page_size) {
+        ArrayList<Record> record_list = page.getRecordList();
+        // ArraayList<Main.Pointer> pointer_list = page.getPointer
         int indextracking = 0;
         int numRecord = record_list.size();
         byte[] result = new byte[page_size];
         byte[] numRecordArr = ByteBuffer.allocate(Integer.BYTES).putInt(numRecord).array();
         System.arraycopy(numRecordArr, 0, result, indextracking, numRecordArr.length);
+
+        // result = [INDEX]
         indextracking = indextracking + numRecordArr.length;
         int indexReverse = page_size;
         for (int i = 0; i < numRecord; i++) {
             Record record = record_list.get(i);
+
             byte[] recordArr = convertRecordToByteArr(record, table);
             int length = recordArr.length;
             indexReverse = indexReverse - length;
@@ -185,6 +198,8 @@ public class Page {
         }
         return result;
     }
+
+
 
 
     /**
@@ -206,7 +221,7 @@ public class Page {
             indextracking = indextracking + 4;
 
             byte[] recordArr = Arrays.copyOfRange(byteArr, offset, offset+length);
-            Record record = convertByteArrToRecord(recordArr, table);
+            Record record = Record.convertByteArrToRecord(recordArr, table);
             recordArrayList.add(record);
         }
         return recordArrayList;
@@ -217,70 +232,6 @@ public class Page {
     //  "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
     //FORMAT: ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true)
     //  "Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true
-
-    /**
-     * This method converts byte array of record in a table to record object
-     * @param record byte array of record
-     * @param table table that record belongs to
-     * @return record object
-     */
-    public Record convertByteArrToRecord(byte[] record, Table table) {
-        ArrayList<Object> valuesList = new ArrayList<>();
-        ArrayList<String> attrTypeList = table.getAttriType_list();
-
-        ByteBuffer result = ByteBuffer.wrap(record);
-        int recordSize = result.getInt(0);
-        int numRecord = result.getInt(4);
-        if (attrTypeList.size() != numRecord) {
-            System.err.println("Something goes wrong in converting byte[] to Record");
-            System.err.println("ERROR");
-            return null;
-        }
-        int indexTracking = 8;
-        for (int i = 0; i < numRecord; i++) {
-
-            char attrType = attrTypeList.get(i).charAt(0);
-            if (attrType == '2') {
-                byte[] valueArr = Arrays.copyOfRange(record, indexTracking, indexTracking + 1);
-                Boolean bo = ByteBuffer.wrap(valueArr).get() != 0;
-                indexTracking = indexTracking + 1;
-                valuesList.add(bo);
-            } else if (attrType == '3') {
-                byte[] valueArr = Arrays.copyOfRange(record, indexTracking, indexTracking + 4);
-                Integer in = ByteBuffer.wrap(valueArr).getInt();
-                indexTracking = indexTracking + 4;
-                valuesList.add(in);
-            } else if (attrType == '4') {
-                byte[] valueArr = Arrays.copyOfRange(record, indexTracking, indexTracking + 8);
-                Double dou = ByteBuffer.wrap(valueArr).getDouble();
-                indexTracking = indexTracking + 8;
-                valuesList.add(dou);
-            } else if (attrType == '5') {
-                byte[] sizeString = Arrays.copyOfRange(record, indexTracking, indexTracking + 4);
-                int size = ByteBuffer.wrap(sizeString).getInt();
-                indexTracking = indexTracking + 4;
-                byte[] strArr = Arrays.copyOfRange(record, indexTracking, indexTracking + size);
-                indexTracking = indexTracking + size;
-                String value = new String(strArr, StandardCharsets.UTF_8);
-                valuesList.add(value);
-
-            } else if (attrType == '6') {
-                byte[] sizeString = Arrays.copyOfRange(record, indexTracking, indexTracking + 4);
-                int size = ByteBuffer.wrap(sizeString).getInt();
-                indexTracking = indexTracking + 4;
-                byte[] strArr = Arrays.copyOfRange(record, indexTracking, indexTracking + size);
-                indexTracking = indexTracking + size;
-                String value = new String(strArr, StandardCharsets.UTF_8);
-                valuesList.add(value);
-            } else {
-                System.err.println("Can't convert byte[] to Record");
-                System.err.println("ERROR");
-                return null;
-            }
-        }
-        Record res = new Record(valuesList);
-        return res;
-    }
 
 
     //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
@@ -396,7 +347,7 @@ public class Page {
      * @param str string needs to be checks
      * @return true if a string is integer, false if not
      */
-    private static boolean isInteger(String str) {
+    public static boolean isInteger(String str) {
         try {
             Integer.parseInt(str);
             return true;

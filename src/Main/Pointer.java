@@ -1,3 +1,5 @@
+package Main;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -43,7 +45,7 @@ public class Pointer {
     /**
      * Deserialize byte array into pointer object
      * @param pointerByteArray
-     * @return Pointer object
+     * @return Main.Pointer object
      */
     public Pointer deserializePointer(byte[] pointerByteArray){
         int idx = 0;

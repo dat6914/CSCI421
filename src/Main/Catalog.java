@@ -1,9 +1,10 @@
+package Main;
+
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * CSCI420 Project - Phase 1
@@ -53,8 +54,8 @@ public class Catalog {
 
 
     /**
-     * Method reads the Catalog.txt and return the byte array
-     * @param path path of Catalog.txt
+     * Method reads the Main.Catalog.txt and return the byte array
+     * @param path path of Main.Catalog.txt
      * @return byte array
      */
     public static byte[] readCatalogFile(String path) {
@@ -83,7 +84,7 @@ public class Catalog {
      */
     public void displaySchema(String location, int pageSize, int bufferSize, Catalog catalog) {
         System.out.println("DB location: " + location);
-        System.out.println("Page Size: " + pageSize);
+        System.out.println("Main.Page Size: " + pageSize);
         System.out.println("Buffer Size: " + bufferSize);
         System.out.println("Tables: \n");
 
@@ -135,9 +136,9 @@ public class Catalog {
      */
     public static String tableToString(Table table) {
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("Table Name: ");
+        stringBuilder.append("Main.Table Name: ");
         stringBuilder.append(table.getTableName()).append("\n");
-        stringBuilder.append("Table schema: \n");
+        stringBuilder.append("Main.Table schema: \n");
         ArrayList<String> attriNameList = table.getAttriName_list();
         ArrayList<String> attriTypeList = table.getAttriType_list();
         String primarykeyName = table.getPrimaryKeyName();
@@ -390,7 +391,7 @@ public class Catalog {
                 try {
                     tempForTypeSize = Integer.parseInt(typeSize);
                 } catch (NumberFormatException ex) {
-                    System.err.println("Something is wrong in Table");
+                    System.err.println("Something is wrong in Main.Table");
                     ex.printStackTrace();
                     System.err.println("ERROR");
                     return null;

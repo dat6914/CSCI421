@@ -1,5 +1,6 @@
+package Main;
+
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Scanner;
 
 /**
@@ -45,14 +46,14 @@ public class Main {
             if (!directPage.exists()) {
                 boolean created = directPage.mkdir();
                 if (created) {
-                    //System.out.println("Page directory created successfully!");
+                    //System.out.println("Main.Page directory created successfully!");
                 } else {
                     System.err.println("Failed to create page directory!");
                     System.err.println("ERROR");
                     return;
                 }
             } else {
-               // System.out.println("Page directory already exists!");
+               // System.out.println("Main.Page directory already exists!");
             }
 
         } else {
@@ -61,10 +62,10 @@ public class Main {
             System.out.println("Restarting the database...");
         }
 
-        System.out.println("Page Size: " + page_size);
+        System.out.println("Main.Page Size: " + page_size);
         System.out.println("Buffer Size: " + buffer_size);
 
-        //StorageManager storageManager = new StorageManager(db_loc, page_size, buffer_size);
+        //Main.StorageManager storageManager = new Main.StorageManager(db_loc, page_size, buffer_size);
         PageBuffer pageBuffer = new PageBuffer(db_loc,buffer_size,page_size);
 
 

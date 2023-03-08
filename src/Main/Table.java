@@ -1,4 +1,5 @@
-import java.nio.ByteBuffer;
+package Main;
+
 import java.util.ArrayList;
 
 /**
@@ -16,6 +17,7 @@ public class Table {
     private ArrayList<String> attriType_list;
     private ArrayList<Integer> pageID_list;
     private int recordNum = 0;
+    private int pageNum = 0;
     private String db_loc;
 
 
@@ -26,25 +28,7 @@ public class Table {
         this.attriType_list = attriTypeList;
         this.db_loc = db_loc;
         this.pageID_list = pageID_list;
-        this.recordNum = getRecordNum(pageID_list);
 
-    }
-
-
-    /**
-     * Method gets the number of records
-     * @param pageID_list list of pageID
-     * @return number of records at this table
-     */
-    public int getRecordNum (ArrayList<Integer> pageID_list) {
-        int result = 0;
-
-        for (int i = 0; i < pageID_list.size(); i++) {
-            int index = pageID_list.get(i);
-            Page page = new Page(index, this, this.db_loc);
-            result =  result + page.getRecordList().size();
-        }
-        return result;
     }
 
     /**
@@ -52,6 +36,10 @@ public class Table {
      */
     public void increaseNumRecordBy1() {
         this.recordNum = this.recordNum + 1;
+    }
+
+    public void incrementPageNum(){
+        this.pageNum += 1;
     }
 
     /**
@@ -115,6 +103,13 @@ public class Table {
      */
     public String getPrimaryKeyName() {
         return primaryKeyName;
+    }
+
+    public byte[] serializeTable(Page page, Table table){
+
+
+        return new byte[10];
+
     }
 
 }
