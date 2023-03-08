@@ -21,11 +21,11 @@ public class PageBuffer {
     private StorageManager storageManager;
 
 
-    public PageBuffer(String db_loc, int page_size, int bufferSize) {
+    public PageBuffer(String db_loc, int bufferSize, int page_size) {
         this.db_loc = db_loc;
-        this.page_size = page_size;
         this.bufferSize = bufferSize;
-        this.storageManager = new StorageManager(db_loc, page_size, bufferSize);
+        this.page_size = page_size;
+        this.storageManager = new StorageManager(db_loc, this.page_size, bufferSize);
     }
 
 
@@ -99,7 +99,9 @@ public class PageBuffer {
                             table.getPageID_list().add(getPageIDList().size() + 1);
                             table.increaseNumRecordBy1();
 
-                            if (page.getCurrent_page_size() > this.page_size) {
+                            // change split
+                            if (page.convertRecordToByteArr(record,table).length> this.page_size) {
+                                System.out.println("page size"+this.page_size);
                                 System.err.println("This record is bigger than page size");
                                 return false;
                             }
@@ -156,7 +158,9 @@ public class PageBuffer {
                                     }
 
                                     // if primary key of new record does not duplicate
+                                    // split page
                                     if (compare < 0) {
+                                        System.out.println(this.page_size);
                                         page.getRecordList().add(i, record);
                                         page.incCurrentPageSize(record, page.convertRecordToByteArr(record, table));
                                         table.increaseNumRecordBy1();

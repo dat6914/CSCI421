@@ -65,7 +65,7 @@ public class Main {
         System.out.println("Buffer Size: " + buffer_size);
 
         //StorageManager storageManager = new StorageManager(db_loc, page_size, buffer_size);
-        PageBuffer pageBuffer = new PageBuffer(db_loc, page_size, buffer_size);
+        PageBuffer pageBuffer = new PageBuffer(db_loc,buffer_size,page_size);
 
 
         System.out.println("----------------------------------------------");

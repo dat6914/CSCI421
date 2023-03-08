@@ -162,7 +162,7 @@ public class Page {
         int indextracking = 0;
         int numRecord = record_list.size();
         byte[] result = new byte[page_size];
-        byte[] numRecordArr = ByteBuffer.allocate(4).putInt(numRecord).array();
+        byte[] numRecordArr = ByteBuffer.allocate(Integer.BYTES).putInt(numRecord).array();
         System.arraycopy(numRecordArr, 0, result, indextracking, numRecordArr.length);
         indextracking = indextracking + numRecordArr.length;
         int indexReverse = page_size;
@@ -297,7 +297,7 @@ public class Page {
         ArrayList<String> attrTypeList = table.getAttriType_list();
         ByteBuffer result = ByteBuffer.allocate(0);
         int numValue = valuesList.size();
-        byte[] numValueArr = ByteBuffer.allocate(4).putInt(numValue).array();
+        byte[] numValueArr = ByteBuffer.allocate(Integer.BYTES).putInt(numValue).array();
         result = appendByteBuffer(result, numValueArr);
 
         if (attrTypeList.size() != valuesList.size()) {
@@ -315,11 +315,11 @@ public class Page {
                 result = appendByteBuffer(result, valueSizeArr);
             } else if (valueType == '3' && temp instanceof Integer) {
                 int in = (Integer) temp;
-                byte[] valueSizeArr = ByteBuffer.allocate(4).putInt(in).array();
+                byte[] valueSizeArr = ByteBuffer.allocate(Integer.BYTES).putInt(in).array();
                 result = appendByteBuffer(result, valueSizeArr);
             } else if (valueType == '4' && temp instanceof Double) {
                 double dou = (Double) temp;
-                byte[] valueArray = ByteBuffer.allocate(8).putDouble(dou).array();
+                byte[] valueArray = ByteBuffer.allocate(Double.BYTES).putDouble(dou).array();
                 result = appendByteBuffer(result, valueArray);
             } else if (valueType == '5' && temp instanceof String) {
                 String stringSize = attrTypeList.get(i).substring(1);
