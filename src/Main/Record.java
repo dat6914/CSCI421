@@ -1,9 +1,12 @@
 package Main;
 
+import org.w3c.dom.Attr;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * CSCI420 Project - Phase 1
@@ -25,7 +28,7 @@ public class Record {
      */
     public Record(ArrayList<Object> valuesList, ArrayList<String> attributeList) {
         this.valuesList = valuesList;
-        calculateAttributeInfo(attributeList);
+        this.attributeInfoList = calculateAttributeInfo(attributeList);
 
     }
 
@@ -37,6 +40,10 @@ public class Record {
         return valuesList;
     }
 
+    public ArrayList<AttributeInfo> getAttributeInfoList(){
+        return attributeInfoList;
+    }
+
     /**
      * This method converts record object of a table to byte[]
      * @param record record object need to be converted to byte[]
@@ -44,8 +51,12 @@ public class Record {
      * @return byte[] of record including checking attribute types
      */
     public byte[] convertRecordToByteArr(Record record, Table table) {
+
+
+
         ArrayList<Object> valuesList = record.getValuesList();
-        ArrayList<String> attrTypeList = table.getAttriType_list();
+        ArrayList<String> attrTypeList = constructTypeList(record.getAttributeInfoList());
+
         ByteBuffer result = ByteBuffer.allocate(0);
         int numValue = valuesList.size();
         byte[] numValueArr = ByteBuffer.allocate(Integer.BYTES).putInt(numValue).array();
@@ -59,20 +70,27 @@ public class Record {
 
         for (int i = 0; i < valuesList.size(); i++) {
             Object temp = valuesList.get(i);
-            char valueType = attrTypeList.get(i).charAt(0);
-            if (valueType == '2' && temp instanceof Boolean) {
+            AttributeInfo attributeInfo = attributeInfoList.get(i);
+            byte[] attributeInfoByteArray = attributeInfo.serializeAttributeInfo();
+            result = Page.appendByteBuffer(result, attributeInfoByteArray);
+
+
+            //char valueType = attrTypeList.get(i).charAt(0);
+            String valueType = attributeInfo.getType();
+
+            if (Objects.equals(valueType, "2") && temp instanceof Boolean) {
                 boolean bo = (Boolean) temp;
                 byte[] valueSizeArr = ByteBuffer.allocate(1).put((byte) (bo ? 1 : 0)).array();
                 result = Page.appendByteBuffer(result, valueSizeArr);
-            } else if (valueType == '3' && temp instanceof Integer) {
+            } else if (Objects.equals(valueType, "3") && temp instanceof Integer) {
                 int in = (Integer) temp;
                 byte[] valueSizeArr = ByteBuffer.allocate(Integer.BYTES).putInt(in).array();
                 result = Page.appendByteBuffer(result, valueSizeArr);
-            } else if (valueType == '4' && temp instanceof Double) {
+            } else if (Objects.equals(valueType, "4") && temp instanceof Double) {
                 double dou = (Double) temp;
                 byte[] valueArray = ByteBuffer.allocate(Double.BYTES).putDouble(dou).array();
                 result = Page.appendByteBuffer(result, valueArray);
-            } else if (valueType == '5' && temp instanceof String) {
+            } else if (Objects.equals(valueType, "5") && temp instanceof String) {
                 String stringSize = attrTypeList.get(i).substring(1);
                 int size = 0;
                 if (Page.isInteger(stringSize)) {
@@ -98,7 +116,7 @@ public class Record {
                     System.err.println("ERROR");
                     return null;
                 }
-            } else if (valueType == '6' && temp instanceof String) {
+            } else if (Objects.equals(valueType, "6") && temp instanceof String) {
                 String stringSize = attrTypeList.get(i).substring(1);
                 int size = 0;
                 if (Page.isInteger(stringSize)) {
@@ -147,7 +165,7 @@ public class Record {
      */
     public static Record convertByteArrToRecord(byte[] record, Table table) {
         ArrayList<Object> valuesList = new ArrayList<>();
-        ArrayList<String> attrTypeList = table.getAttriType_list();
+        ArrayList<String> attrTypeList = new ArrayList<>();
 
         ByteBuffer result = ByteBuffer.wrap(record);
         int recordSize = result.getInt(0);
@@ -169,12 +187,12 @@ public class Record {
             } else if (attrType == '3') {
                 byte[] valueArr = Arrays.copyOfRange(record, indexTracking, indexTracking + Integer.BYTES);
                 Integer in = ByteBuffer.wrap(valueArr).getInt();
-                indexTracking = indexTracking + 4;
+                indexTracking = indexTracking + Integer.BYTES;
                 valuesList.add(in);
             } else if (attrType == '4') {
-                byte[] valueArr = Arrays.copyOfRange(record, indexTracking, indexTracking + 8);
+                byte[] valueArr = Arrays.copyOfRange(record, indexTracking, indexTracking + Double.BYTES);
                 Double dou = ByteBuffer.wrap(valueArr).getDouble();
-                indexTracking = indexTracking + 8;
+                indexTracking = indexTracking + Double.BYTES;
                 valuesList.add(dou);
             } else if (attrType == '5') {
                 byte[] sizeString = Arrays.copyOfRange(record, indexTracking, indexTracking + 4);
@@ -203,25 +221,39 @@ public class Record {
         return res;
     }
 
-    public void calculateAttributeInfo(ArrayList<String> attributeList){
+    public ArrayList<AttributeInfo> calculateAttributeInfo(ArrayList<String> attributeList){
+        ArrayList<AttributeInfo> attributeInfoList = new ArrayList<AttributeInfo>();
         for(int i = 0; i < valuesList.size(); i++){
             String type = attributeList.get(i).substring(0,1);
             switch(type){
-                case "2" : this.attributeInfoList.add(new AttributeInfo(type, 1));
+                case "2" : attributeInfoList.add(new AttributeInfo(type, 1));
                     break;
-                case "3" : this.attributeInfoList.add(new AttributeInfo(type, Integer.BYTES));
+                case "3" : attributeInfoList.add(new AttributeInfo(type, Integer.BYTES));
                     break;
-                case "4" : this.attributeInfoList.add(new AttributeInfo(type, Double.BYTES));
+                case "4" : attributeInfoList.add(new AttributeInfo(type, Double.BYTES));
                     break;
                 case "5" : int length = Integer.parseInt(attributeList.get(i).substring(1));
-                    this.attributeInfoList.add(new AttributeInfo(type, length));
+                    attributeInfoList.add(new AttributeInfo(type, length));
                     break;
                 case "6" : String s = (String) valuesList.get(i);
                     int len = s.length();
-                    this.attributeInfoList.add(new AttributeInfo(type, len));
+                    attributeInfoList.add(new AttributeInfo(type, len));
                 }
             }
+        return attributeInfoList;
         }
+
+
+    public static ArrayList<String> constructTypeList(ArrayList<AttributeInfo> attributeInfoList){
+        ArrayList<String> typeList = new ArrayList<>();
+        for(AttributeInfo ai: attributeInfoList){
+            typeList.add(ai.getType());
+        }
+
+        return typeList;
+    }
+
+
     }
 
 

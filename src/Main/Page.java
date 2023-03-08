@@ -61,6 +61,8 @@ public class Page {
     public int computeCurrentPagesize(ArrayList<Record> record_list) {
 
         int size = 0;
+
+
         size = size + Integer.BYTES;
         int pointerSize = Integer.BYTES * 2;
         for (Record record : record_list) {

@@ -23,7 +23,7 @@ public class AttributeInfo {
         return this.length;
     }
 
-    public byte[] serializeRecordInfo(){
+    public byte[] serializeAttributeInfo(){
         //byte[] strArr = ((String) temp).getBytes(StandardCharsets.UTF_8)
 
         //byte[] typeByteArray = ByteBuffer.allocate(4).putChar(this.type).array();
@@ -48,7 +48,7 @@ public class AttributeInfo {
         return attributeInfoByteArray;
     }
 
-    public AttributeInfo deserializeRecordInfo(byte[] byteArray){
+    public AttributeInfo deserializeAttributeInfo(byte[] byteArray){
         int idx = 0;
 
 
