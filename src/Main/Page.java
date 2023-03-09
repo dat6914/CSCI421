@@ -59,13 +59,11 @@ public class Page {
      * @return the current page size
      */
     public int computeCurrentPagesize(ArrayList<Record> record_list) {
-
         int size = 0;
-        // bytes for totalRecordNum
         size = size + Integer.BYTES;
         int pointerSize = Integer.BYTES * 2;
         for (Record record : record_list) {
-            size = size + pointerSize + convertRecordToByteArr(record).length;
+            size = size + pointerSize + record.getRecordSize();
         }
 
         return size;
@@ -184,7 +182,7 @@ public class Page {
         for (int i = 0; i < numRecord; i++) {
             Record record = record_list.get(i);
 
-            byte[] recordArr = convertRecordToByteArr(record);
+            byte[] recordArr = record.convertRecordToByteArr(record);
             int length = recordArr.length;
             indexReverse = indexReverse - length;
             byte[] offSetArr = ByteBuffer.allocate(4).putInt(indexReverse).array();
@@ -227,123 +225,6 @@ public class Page {
         }
         return recordArrayList;
     }
-
-
-    //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
-    //  "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
-    //FORMAT: ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true)
-    //  "Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true
-
-
-    //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
-    //  "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
-    //  FORMAT: ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true)
-    //  "Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true
-
-    /**
-     * This method converts record object of a table to byte[]
-     * @param record record object need to be converted to byte[]
-     * @return byte[] of record including checking attribute types
-     */
-    public byte[] convertRecordToByteArr(Record record) {
-        ArrayList<Object> valuesList = record.getValuesList();
-
-        //TODO
-        ArrayList<String> attrTypeList = table.getAttriType_list();
-        ByteBuffer result = ByteBuffer.allocate(0);
-        int numValue = valuesList.size();
-        byte[] numValueArr = ByteBuffer.allocate(Integer.BYTES).putInt(numValue).array();
-        result = appendByteBuffer(result, numValueArr);
-
-        if (attrTypeList.size() != valuesList.size()) {
-            System.err.println("Too many attributes!");
-            System.err.println("ERROR");
-            return null;
-        }
-
-        for (int i = 0; i < valuesList.size(); i++) {
-            Object temp = valuesList.get(i);
-
-            char valueType = attrTypeList.get(i).charAt(0);
-            if (valueType == '2' && temp instanceof Boolean) {
-                boolean bo = (Boolean) temp;
-                byte[] valueSizeArr = ByteBuffer.allocate(1).put((byte) (bo ? 1 : 0)).array();
-                result = appendByteBuffer(result, valueSizeArr);
-            } else if (valueType == '3' && temp instanceof Integer) {
-                int in = (Integer) temp;
-                byte[] valueSizeArr = ByteBuffer.allocate(Integer.BYTES).putInt(in).array();
-                result = appendByteBuffer(result, valueSizeArr);
-            } else if (valueType == '4' && temp instanceof Double) {
-                double dou = (Double) temp;
-                byte[] valueArray = ByteBuffer.allocate(Double.BYTES).putDouble(dou).array();
-                result = appendByteBuffer(result, valueArray);
-            } else if (valueType == '5' && temp instanceof String) {
-                String stringSize = attrTypeList.get(i).substring(1);
-                int size = 0;
-                if (isInteger(stringSize)) {
-                    size = Integer.parseInt(stringSize);
-                }
-                int stringLength = ((String) temp).length();
-                if (stringLength < size - 1) {
-                    byte[] sizeString = ByteBuffer.allocate(4).putInt(stringLength + 1).array();
-                    result = appendByteBuffer(result, sizeString);
-                    byte[] strArr = ((String) temp).getBytes(StandardCharsets.UTF_8);
-                    ByteBuffer buffer = ByteBuffer.allocate(strArr.length + 1);
-                    buffer.put(strArr);
-                    buffer.put((byte) 0);
-                    result = appendByteBuffer(result, buffer.array());
-
-                } else if (stringLength == size) {
-                    byte[] sizeString = ByteBuffer.allocate(4).putInt(stringLength).array();
-                    result = appendByteBuffer(result, sizeString);
-                    byte[] strArr = ((String) temp).getBytes(StandardCharsets.UTF_8);
-                    result = appendByteBuffer(result, strArr);
-                } else {
-                    System.err.println("Size char of " + stringSize + " but got string size: " + stringLength);
-                    System.err.println("ERROR");
-                    return null;
-                }
-            } else if (valueType == '6' && temp instanceof String) {
-                String stringSize = attrTypeList.get(i).substring(1);
-                int size = 0;
-                if (isInteger(stringSize)) {
-                    size = Integer.parseInt(stringSize);
-                }
-                int stringLength = ((String) temp).length();
-                if (stringLength < size - 1) {
-                    byte[] sizeString = ByteBuffer.allocate(4).putInt(stringLength + 1).array();
-                    result = appendByteBuffer(result, sizeString);
-                    byte[] strArr = ((String) temp).getBytes(StandardCharsets.UTF_8);
-                    ByteBuffer buffer = ByteBuffer.allocate(strArr.length + 1);
-                    buffer.put(strArr);
-                    buffer.put((byte) 0);
-                    result = appendByteBuffer(result, buffer.array());
-
-                } else if (stringLength == size) {
-                    byte[] sizeString = ByteBuffer.allocate(4).putInt(stringLength).array();
-                    result = appendByteBuffer(result, sizeString);
-                    byte[] strArr = ((String) temp).getBytes(StandardCharsets.UTF_8);
-                    result = appendByteBuffer(result, strArr);
-                } else {
-                    System.err.println("Size varchar of " + stringSize + " but got string size: " + stringLength);
-                    System.err.println("ERROR");
-                    return null;
-                }
-            } else {
-                System.err.println("There is no data type: " + temp.getClass().getName());
-                System.err.println("ERROR");
-                return null;
-            }
-        }
-
-        // encode the total size of record
-        int resultSize = result.array().length;
-        ByteBuffer temp = ByteBuffer.allocate(4).putInt(resultSize);
-        result = appendByteBuffer(temp, result.array());
-
-        return result.array();
-    }
-
 
     /**
      * This method checks if a string is an integer or not
