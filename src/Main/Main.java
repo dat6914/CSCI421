@@ -213,18 +213,18 @@ public class Main {
                     if (optionArr.length == 6) {
                         //TODO no default
                     }
-                    else if (optionArr.length == 7) {
+                    else if (optionArr[6].equals("default")) {
                         //TODO with default
                     }
                     else {
-                        System.err.println("It is not a valid command.");
+                        System.err.println("This is not a valid command.");
                     }
 
                 }
             }
 
             else {
-                System.err.println("It is not a valid command.");
+                System.err.println("This is not a valid command.");
 
             }
         }
