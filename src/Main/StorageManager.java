@@ -403,4 +403,11 @@ public class StorageManager {
         }
         return false;
     }
+
+    public void dropAttribute(String attribute, String tableName) {
+        Table table = getTableByName(tableName);
+        if (table != null) {
+            //TODO drop attribute
+        }
+    }
 }
