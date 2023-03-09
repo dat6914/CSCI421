@@ -197,6 +197,30 @@ public class Main {
 
             } else if (optionArr[0].equals("alter") && optionArr[1].equals("table")) {
                 //TODO: alter table
+
+                if (optionArr[2].equals("drop") && optionArr.length == 5) {
+                    // drop <a name>: will remove the attribute with the given name from the table;
+                    //including its data. drop is a keyword.
+
+                    //TODO: drop attribute
+
+
+                }
+                else if (optionArr[2].equals("add")) {
+                    // add <a name> <a type>: will add the attribute with the given name and type to the table;
+                    //including its data. add is a keyword.
+
+                    if (optionArr.length == 6) {
+                        //TODO no default
+                    }
+                    else if (optionArr.length == 7) {
+                        //TODO with default
+                    }
+                    else {
+                        System.err.println("It is not a valid command.");
+                    }
+
+                }
             }
 
             else {
