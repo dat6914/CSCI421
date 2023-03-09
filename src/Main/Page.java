@@ -3,6 +3,7 @@ package Main;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -21,26 +22,26 @@ public class Page {
     private int pageID;
     private ArrayList<Record> record_list = new ArrayList<>();
     private ArrayList<Object> primarykeyValueList = new ArrayList<>();
-    private Table table;
     private int current_page_size;
-    private String DBLocation;
     private ArrayList<Pointer> pointerList;
+    private String DBLocation;
 
-    public Page(int pageID, Table table, String DBLocation) {
+
+    public Page(int pageID, String tableName, String DBLocation ) {
         this.pageID = pageID;
-        this.table = table;
         this.DBLocation = DBLocation;
-        this.record_list = getRecordListFromPage(pageID, table);
+        //this.record_list = getRecordListFromPage(pageID);
         this.current_page_size = computeCurrentPagesize(record_list);
     }
 
+    // constructor for when creating a new page
+    // not pulling from hardware
+    public Page(int numRec,int pageID, ArrayList<Pointer> pointers,ArrayList<Record> record_list){
+        numRec = getNumRec();
+        this.pageID = pageID;
+        this.pointerList = pointers;
+        this.record_list = record_list;
 
-    /**
-     * Method gets table of the page
-     * @return table of page
-     */
-    public Table getTable() {
-        return this.table;
     }
 
 
@@ -65,7 +66,6 @@ public class Page {
         for (Record record : record_list) {
             size = size + pointerSize + record.getRecordSize();
         }
-
         return size;
     }
 
@@ -110,21 +110,11 @@ public class Page {
     /**
      * Methods gets the list of records from a particular page from a given table
      * @param pageID page ID
-     * @param table table
      * @return Arraylist of record
      */
-    public ArrayList<Record> getRecordListFromPage(int pageID, Table table){
-        String pagePath = this.DBLocation + "/Table/" + table.getTableName() + ".txt";
-        File file = new File(pagePath);
-        if (file.exists()) {
-            //todo: do deserialize on table -> deserialize page -> find record list using page ID
-            //todo: change return
-            byte[] pageArr = readPageFile(pagePath);
-            return convertByteArrToPage(pageArr, table);
-        } else {
-            return new ArrayList<>();
-        }
-    }
+//    public ArrayList<Record> getRecordListFromPage(int pageID,){
+//
+//    }
 
     /**
      * Method read the page file
@@ -147,83 +137,77 @@ public class Page {
         }
     }
 
-
-    /**
-     * Method checks if two pages are equals
-     * @param obj other page
-     * @return true if equals, otherwise false
-     */
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof Page)
-            return ((Page) obj).pageID == pageID;
-        return false;
+    public int getNumRec(){
+        return this.record_list.size();
     }
+
 
     /**
      * Method converts Main.Page to byte array
      * @param page
-     * @param table table that the page belongs to
-     * @param page_size the page size
      * @return byte array of page
      */
-    public byte[] convertPageToByteArr(Page page, Table table, int page_size) {
-        ArrayList<Record> record_list = page.getRecordList();
+    public byte[] convertPageToByteArr(Page page,int numRec,int pageID,ArrayList<Pointer> pointerList,ArrayList<Record> record_list, int page_size) {
         // ArraayList<Main.Pointer> pointer_list = page.getPointer
         int indextracking = 0;
-        int numRecord = record_list.size();
+        numRec = getNumRec();
         byte[] result = new byte[page_size];
-        byte[] numRecordArr = ByteBuffer.allocate(Integer.BYTES).putInt(numRecord).array();
+        byte[] numRecordArr = ByteBuffer.allocate(Integer.BYTES).putInt(numRec).array();
         System.arraycopy(numRecordArr, 0, result, indextracking, numRecordArr.length);
+        byte[] pageId = ByteBuffer.allocate(Integer.BYTES).putInt(pageID).array();
+        System.arraycopy(pageId,0,result,indextracking + Integer.BYTES,pageId.length);
+
 
         // result = [INDEX]
-        indextracking = indextracking + numRecordArr.length;
-        int indexReverse = page_size;
-        for (int i = 0; i < numRecord; i++) {
+        indextracking = indextracking + numRecordArr.length + pageId.length;
+        int offset = page_size;
+        for (int i = 0; i < numRec; i++) {
+            Pointer pointer = pointerList.get(i);
+            byte[] pointerByte = pointer.serializePointer();
+            System.arraycopy(pointerByte,0,result,indextracking+pointerByte.length,pointerByte.length);
+            indextracking += pointerByte.length;
+
             Record record = record_list.get(i);
-
             byte[] recordArr = record.convertRecordToByteArr(record);
-            int length = recordArr.length;
-            indexReverse = indexReverse - length;
-            byte[] offSetArr = ByteBuffer.allocate(4).putInt(indexReverse).array();
-            System.arraycopy(offSetArr, 0, result, indextracking, offSetArr.length);
-            indextracking = indextracking + 4;
+            int recLength = recordArr.length;
+            offset += recLength;
 
-            byte[] lengthArr = ByteBuffer.allocate(4).putInt(length).array();
-            System.arraycopy(lengthArr, 0, result, indextracking, lengthArr.length);
-            indextracking = indextracking + 4;
+            System.arraycopy(recordArr,0,result, offset,recLength);
 
-            System.arraycopy(recordArr, 0, result, indexReverse , recordArr.length);
         }
         return result;
     }
 
 
-
-
     /**
      * Method converts byte array of page to arraylist of records
      * @param byteArr byte array of page
-     * @param table table that page belongs to
      * @return arraylist of records
      */
-    public ArrayList<Record> convertByteArrToPage(byte[] byteArr, Table table) {
+    public static Page convertByteArrToPage(byte[] byteArr) {
         ArrayList<Record> recordArrayList = new ArrayList<>();
         ByteBuffer byteBuffer = ByteBuffer.wrap(byteArr);
         int recordNum = byteBuffer.getInt(0);
-        int indextracking = 4;
+        int pageId = byteBuffer.getInt(4);
+        ArrayList<Pointer> pointersList = new ArrayList<>();
+        int indextracking = 8;
 
         for (int i = 0; i < recordNum; i++) {
-            int offset = byteBuffer.getInt(indextracking);
-            indextracking = indextracking + 4;
-            int length = byteBuffer.getInt(indextracking);
-            indextracking = indextracking + 4;
 
-            byte[] recordArr = Arrays.copyOfRange(byteArr, offset, offset+length);
+            int offset = byteBuffer.getInt(indextracking);
+            indextracking = indextracking + Integer.BYTES;
+            int length = byteBuffer.getInt(indextracking);
+            indextracking = indextracking + Integer.BYTES;
+            Pointer pointer = new Pointer(offset,length);
+            pointersList.add(pointer);
+
+            byte[] recordArr = Arrays.copyOfRange(byteArr, offset, offset-length);
             Record record = Record.convertByteArrToRecord(recordArr);
             recordArrayList.add(record);
         }
-        return recordArrayList;
+
+        Page page = new Page(recordNum,pageId,pointersList,recordArrayList);
+        return page;
     }
 
     /**
@@ -252,5 +236,22 @@ public class Page {
         result.put(current.array(), 0, current.array().length);
         result.put(arr, 0, arr.length);
         return result;
+    }
+
+    @Override
+    public boolean equals(Object o){
+        if (this == o){
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()){
+            return false;
+        }
+        Page other = (Page)o;
+        return pointerList.equals(other.pointerList) && record_list.equals(other.record_list);
+    }
+
+    @Override
+    public String toString(){
+        return "Page{ PointerList = " + pointerList.toString() + "record_list = " + record_list.toString() + " }";
     }
 }
