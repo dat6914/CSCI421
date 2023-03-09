@@ -3,6 +3,8 @@ package Main;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -389,4 +391,16 @@ public class StorageManager {
         return false;
     }
 
+    //TODO: check what the extension of the file is
+    public boolean dropTable(String tableName) throws IOException {
+        Table table = getTableByName(tableName);
+
+        if (table != null) {
+            this.catalog.getTablesList().remove(table);
+            Files.deleteIfExists(Paths.get(db_loc + "/" + tableName + ".txt"));
+
+            return true;
+        }
+        return false;
+    }
 }

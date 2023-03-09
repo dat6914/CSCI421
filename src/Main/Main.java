@@ -1,6 +1,7 @@
 package Main;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Scanner;
 
 /**
@@ -9,7 +10,7 @@ import java.util.Scanner;
  */
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         Scanner scanner = new Scanner(System.in);
         if (args.length != 3) {
             System.err.println("Usage: <db_loc> <page_size> <buffer_size>");
@@ -76,7 +77,7 @@ public class Main {
 
         while(true) {
             System.out.println("\nPlease enter commands, enter <quit> to shutdown the database > ");
-            String input = scanner.nextLine();
+            String input = scanner.nextLine().trim();
             String[] optionArr = input.split(" ");
             if (input.equals("display schema;")) {
                 Catalog catalog = pageBuffer.getCatalog();
@@ -144,7 +145,7 @@ public class Main {
 
             } else if (optionArr[0].equals("select") && optionArr[1].equals("record") && optionArr[2].equals("from") &&
                     optionArr[4].equals("where") && optionArr[5].equals("primarykey") && optionArr.length == 7) {
-                if (optionArr[6].charAt(optionArr[6].length()-1) == ';') {
+                if (optionArr[6].charAt(optionArr[6].length() - 1) == ';') {
                     optionArr[6] = optionArr[6].substring(0, optionArr[6].length() - 1);
                 }
                 Table table = pageBuffer.getStorageManager().getTableByName(optionArr[3]);
@@ -159,6 +160,17 @@ public class Main {
                     }
                 } else {
                     System.err.println("No such table " + optionArr[6]);
+                    System.err.println("ERROR");
+                }
+
+            } else if (optionArr[0].equals("drop") && optionArr[1].equals("table") && optionArr.length == 3) {
+                if (optionArr[2].charAt(optionArr[2].length() - 1) == ';') {
+                    optionArr[2] = optionArr[2].substring(0, optionArr[2].length() - 1);
+                }
+                if (pageBuffer.getStorageManager().dropTable(optionArr[2])) {
+                    System.out.println("\nSUCCESS");
+                } else {
+                    System.err.println("No such table " + optionArr[2]);
                     System.err.println("ERROR");
                 }
 
