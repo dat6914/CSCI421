@@ -154,11 +154,12 @@ public class Page {
      * @param page
      * @return byte array of page
      */
-    public byte[] convertPageToByteArr(Page page,ArrayList<Pointer> pointerList,ArrayList<Record> record_list, int page_size) {
-        // ArraayList<Main.Pointer> pointer_list = page.getPointer
+    public byte[] convertPageToByteArr(Page page, int page_size) {
         int indextracking = 0;
         byte[] result = new byte[page_size];
         byte[] numRecordArr = ByteBuffer.allocate(Integer.BYTES).putInt(page.getNumRec()).array();
+        ArrayList<Pointer> pointerList = page.getPointerList();
+        ArrayList<Record> record_list = page.getRecordList();
 
         System.arraycopy(numRecordArr, 0, result, indextracking, numRecordArr.length);
         // byte arr at idx 4
@@ -167,10 +168,8 @@ public class Page {
 
         System.arraycopy(pageId,0,result,indextracking,pageId.length);
 
-        // result = [INDEX]
         indextracking += pageId.length;
 
-        //idx start at 8
         int offset = page_size;
         for (int i = 0; i < page.getNumRec(); i++) {
             Pointer pointer = pointerList.get(i);
@@ -178,19 +177,11 @@ public class Page {
             System.arraycopy(pointerByte,0,result,indextracking,pointerByte.length);
             indextracking += pointerByte.length;
 
-            // **
             Record record = record_list.get(i);
             byte[] recordArr = record.convertRecordToByteArr(record);
-            System.out.println("recordArr: " + recordArr);
             int recLength = recordArr.length;
             offset -= recLength;
-
-            System.out.println(recLength);
-            System.out.println(pointer);
-
-
             System.arraycopy(recordArr,0,result, offset,recLength);
-            System.out.println("first record offset = " + offset);
 
         }
         return result;
@@ -209,13 +200,8 @@ public class Page {
         int pageId = byteBuffer.getInt();
         ArrayList<Pointer> pointersList = new ArrayList<>();
         int indextracking = 8;
-        System.out.println("recordNum: " + recordNum);
-        System.out.println("pageId: " + pageId);
-
 
         for (int i = 0; i < recordNum; i++) {
-
-            System.out.println("234324");
 
             // get the next 8 bytes for Pointer.
             byte[] pointerByteArr = Arrays.copyOfRange(byteArr, indextracking, indextracking + 8);
@@ -223,20 +209,12 @@ public class Page {
             Pointer pointer = Pointer.deserializePointer(pointerByteArr);
             int offset = pointer.getOffset();
             int length = pointer.getLength();
-            System.out.println(pointer);
             pointersList.add(pointer);
-
-            System.out.println("-==32");
-            System.out.println(offset);
-            System.out.println(offset+length);
-            System.out.println("---324");
 
             // ***
             byte[] recordArr = Arrays.copyOfRange(byteArr, offset, offset+length);
-            System.out.println("deserialize recordArr: " + recordArr.toString());
             Record record = Record.convertByteArrToRecord(recordArr);
             recordArrayList.add(record);
-            System.out.println("record = " + record);
 
         }
 
@@ -270,6 +248,20 @@ public class Page {
         result.put(current.array(), 0, current.array().length);
         result.put(arr, 0, arr.length);
         return result;
+    }
+
+
+    public static int computeSmallestOffset(ArrayList<Pointer> pointerArrayList){
+        int min = pointerArrayList.get(0).getOffset();
+        for(Pointer p: pointerArrayList){
+            int currOffset = p.getOffset();
+            if(currOffset < p.getOffset()){
+                min = currOffset;
+            }
+        }
+
+        return min;
+
     }
 
     @Override

@@ -38,7 +38,7 @@ public class PageTest{
         pointerArrayList.add(pointer1);
 
         Page page1 = new Page(numRec,pageId,pointerArrayList,records);
-        byte[] pageByte = page1.convertPageToByteArr(page1,pointerArrayList,records,pagesize);
+        byte[] pageByte = page1.convertPageToByteArr(page1,pagesize);
         Page page2  = Page.convertByteArrToPage(pageByte);
 
         assertEquals(page1,page2);

@@ -179,7 +179,6 @@ public class Record {
         //int recordSize = result.getInt(0);
 
         int numValue = result.getInt();
-        System.out.println("numValue " + numValue);
 
         int indexTracking = Integer.BYTES;
         for (int i = 0; i < numValue; i++) {
@@ -190,7 +189,6 @@ public class Record {
             String type = attributeInfo.getType();
             int length = attributeInfo.getLength();
 
-            System.out.println(attributeInfo);
             indexTracking = indexTracking + 1 + Integer.BYTES;
             char attrType = type.charAt(0);
             if (attrType == '2') {
@@ -205,14 +203,12 @@ public class Record {
                 indexTracking = indexTracking + Integer.BYTES;
                 valuesList.add(in);
                 attrTypeList.add(type);
-                System.out.println("first value " + in);
             } else if (attrType == '4') {
                 byte[] valueArr = Arrays.copyOfRange(record, indexTracking, indexTracking + length);
                 Double dou = ByteBuffer.wrap(valueArr).getDouble();
                 indexTracking = indexTracking + Double.BYTES;
                 valuesList.add(dou);
                 attrTypeList.add(type);
-                System.out.println(dou);
             } else if (attrType == '5') {
                 indexTracking = indexTracking + 4;
                 byte[] strArr = Arrays.copyOfRange(record, indexTracking, indexTracking + length);
@@ -222,7 +218,6 @@ public class Record {
                 String charLen = String.valueOf(length);
                 String charType = type + charLen;
                 attrTypeList.add(charType);
-                System.out.println(value);
             } else if (attrType == '6') {
                 indexTracking = indexTracking + 4;
                 byte[] strArr = Arrays.copyOfRange(record, indexTracking, indexTracking + length);

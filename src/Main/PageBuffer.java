@@ -66,7 +66,7 @@ public class PageBuffer {
                 int pageId = pageToWrite.getPageID();
                 ArrayList<Pointer> pointerArrayList = pageToWrite.getPointerList();
                 ArrayList<Record> recordArrayList = pageToWrite.getRecordList();
-                byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite,pointerArrayList,recordArrayList,this.page_size);
+                byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite,this.page_size);
 
                 //byte[] tableByteArray = table.serializeTable(pageToWrite, table);
                 //TODO Serialize entire table. First element is # of page. Second is arrayList of pointers.
@@ -283,7 +283,7 @@ public class PageBuffer {
             int pageId = pageToWrite.getPageID();
             ArrayList<Pointer> pointerArrayList = pageToWrite.getPointerList();
             ArrayList<Record> recordArrayList = pageToWrite.getRecordList();
-            byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite,pointerArrayList,recordArrayList, this.page_size);
+            byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite, this.page_size);
             String tableName = pageToWrite.getTablename();
             String path = this.db_loc + "/Tables/" + tableName + ".txt";
             this.storageManager.writeByteArrToDisk(path, byteArr);
