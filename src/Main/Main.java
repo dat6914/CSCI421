@@ -196,6 +196,7 @@ public class Main {
                 }
 
             } else if (optionArr[0].equals("alter") && optionArr[1].equals("table")) {
+                optionArr[optionArr.length- 1] = optionArr[optionArr.length- 1].substring(0, optionArr[optionArr.length- 1].length() - 1);
                 //TODO: alter table
 
                 if (optionArr[2].equals("drop") && optionArr.length == 5) {
@@ -204,9 +205,12 @@ public class Main {
 
                     //TODO: drop attribute
 
+                    //pageBuffer.getStorageManager().dropAttribute(optionArr[4]);
+
 
                 }
                 else if (optionArr[2].equals("add")) {
+                    optionArr[optionArr.length- 1] = optionArr[optionArr.length- 1].substring(0, optionArr[optionArr.length- 1].length() - 1);
                     // add <a name> <a type>: will add the attribute with the given name and type to the table;
                     //including its data. add is a keyword.
 
