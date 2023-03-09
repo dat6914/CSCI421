@@ -31,8 +31,6 @@ public class AttributeInfo {
         //byte[] typeByteArray = (this.type).getBytes(StandardCharsets.UTF_8);
 
         byte[] typeByteArray = (this.type).getBytes(StandardCharsets.UTF_8);
-        System.out.println("length of type" + typeByteArray.length);
-
 
 
         byte[] lengthByteArray = ByteBuffer.allocate(Integer.BYTES).putInt(this.length).array();

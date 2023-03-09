@@ -157,7 +157,7 @@ public class Page {
     public byte[] convertPageToByteArr(Page page,int numRec,int pageID,ArrayList<Pointer> pointerList,ArrayList<Record> record_list, int page_size) {
         // ArraayList<Main.Pointer> pointer_list = page.getPointer
         int indextracking = 0;
-        numRec = getNumRec();
+        //numRec = page.getNumRec();
         byte[] result = new byte[page_size];
         byte[] numRecordArr = ByteBuffer.allocate(Integer.BYTES).putInt(numRec).array();
 
@@ -233,7 +233,7 @@ public class Page {
             System.out.println("---324");
 
             // ***
-            byte[] recordArr = Arrays.copyOfRange(byteArr, offset, length);
+            byte[] recordArr = Arrays.copyOfRange(byteArr, offset, offset+length);
             System.out.println("deserialize recordArr: " + recordArr.toString());
             Record record = Record.convertByteArrToRecord(recordArr);
             recordArrayList.add(record);
