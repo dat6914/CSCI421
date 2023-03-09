@@ -31,6 +31,7 @@ public class AttributeInfo {
         //byte[] typeByteArray = (this.type).getBytes(StandardCharsets.UTF_8);
 
         byte[] typeByteArray = (this.type).getBytes(StandardCharsets.UTF_8);
+        System.out.println("length of type" + typeByteArray.length);
 
 
 
@@ -77,9 +78,6 @@ public class AttributeInfo {
 
     @Override
     public String toString(){
-        System.out.println("Attribute Type: " + type);
-        System.out.println("Attribute Length: " + length);
-
         return "AttributeInfo{type = " + type + " , length = " + length + "}";
     }
 

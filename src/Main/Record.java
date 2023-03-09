@@ -22,6 +22,8 @@ public class Record {
 
     private ArrayList<Object> valuesList;
 
+    private int recordSize;
+
     /**
      * Constructor of Main.Record
      * @param valuesList the arraylist of values
@@ -29,6 +31,7 @@ public class Record {
     public Record(ArrayList<Object> valuesList, ArrayList<String> attributeList) {
         this.valuesList = valuesList;
         this.attributeInfoList = calculateAttributeInfo(attributeList);
+        this.recordSize = computeRecordSize();
 
     }
 
@@ -43,6 +46,22 @@ public class Record {
     public ArrayList<AttributeInfo> getAttributeInfoList(){
         return attributeInfoList;
     }
+
+    public int getRecordSize(){
+        return recordSize;
+    }
+
+
+    //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
+    //  "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
+    //FORMAT: ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true)
+    //  "Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true
+
+
+    //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
+    //  "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
+    //  FORMAT: ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true)
+    //  "Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true
 
     /**
      * This method converts record object of a table to byte[]
@@ -71,10 +90,7 @@ public class Record {
             byte[] attributeInfoByteArray = attributeInfo.serializeAttributeInfo();
             result = Page.appendByteBuffer(result, attributeInfoByteArray);
 
-
-            //char valueType = attrTypeList.get(i).charAt(0);
             String valueType = attributeInfo.getType().substring(0,1);
-            System.out.println("value: " + valueType);
 
             if (Objects.equals(valueType, "2") && temp instanceof Boolean) {
                 boolean bo = (Boolean) temp;
@@ -89,17 +105,14 @@ public class Record {
                 byte[] valueArray = ByteBuffer.allocate(Double.BYTES).putDouble(dou).array();
                 result = Page.appendByteBuffer(result, valueArray);
             } else if (Objects.equals(valueType, "5") && temp instanceof String) {
-                //System.out.println("FUCK YOU " + attributeInfo.getType());
-                //System.out.println(attrTypeList.get(i));
+
                 int size = attributeInfo.getLength();
-                System.out.println("DUDDD " + size);
                 //int size = 0;
 //                if (Page.isInteger(stringSize)) {
 //                    size = Integer.parseInt(stringSize);
 //                }
 
                 int stringLength = ((String) temp).length();
-                System.out.println("String length =" + stringLength);
                 if (stringLength < size - 1) {
                     byte[] sizeString = ByteBuffer.allocate(4).putInt(stringLength + 1).array();
                     result = Page.appendByteBuffer(result, sizeString);
@@ -151,13 +164,6 @@ public class Record {
                 return null;
             }
         }
-        System.out.println("______ " + result.array());
-
-        // encode the total size of record
-        //int resultSize = result.array().length;
-        //ByteBuffer temp = ByteBuffer.allocate(4).putInt(resultSize);
-        //result = Page.appendByteBuffer(temp, result.array());
-        //System.out.println(result);
         return result.array();
     }
 
@@ -168,68 +174,70 @@ public class Record {
      */
     public static Record convertByteArrToRecord(byte[] record) {
         ArrayList<Object> valuesList = new ArrayList<>();
-        //ArrayList<String> attrTypeList = new ArrayList<>();
+        ArrayList<String> attrTypeList = new ArrayList<>();
         System.out.println(record);
         ByteBuffer result = ByteBuffer.wrap(record);
         //int recordSize = result.getInt(0);
         int numValue = result.getInt(0);
-//        if (attrTypeList.size() != numValue) {
-//            System.err.println("Something goes wrong in converting byte[] to Main.Record");
-//            System.err.println("ERROR");
-//            return null;
-//        }
-        int indexTracking = 8;
+
+        int indexTracking = Integer.BYTES;
         for (int i = 0; i < numValue; i++) {
-            byte[] attributeInfoByteArray = new byte[1 + Integer.BYTES];
-            result.get(attributeInfoByteArray, 0, 1 + Integer.BYTES);
+            // byte[] attributeInfoByteArray = new byte[2 + Integer.BYTES];
+            byte[] attributeInfoByteArray = Arrays.copyOfRange(record, indexTracking, indexTracking + 1 + Integer.BYTES);
+            //result.get(attributeInfoByteArray, 0, 2 + Integer.BYTES);
             AttributeInfo attributeInfo = AttributeInfo.deserializeAttributeInfo(attributeInfoByteArray);
             String type = attributeInfo.getType();
             int length = attributeInfo.getLength();
 
+            System.out.println(attributeInfo);
+            indexTracking = indexTracking + 1 + Integer.BYTES;
             char attrType = type.charAt(0);
-            System.out.println("NUM = " + numValue);
             if (attrType == '2') {
                 byte[] valueArr = Arrays.copyOfRange(record, indexTracking, indexTracking + length);
                 Boolean bo = ByteBuffer.wrap(valueArr).get() != 0;
                 indexTracking = indexTracking + 1;
                 valuesList.add(bo);
+                attrTypeList.add(type);
             } else if (attrType == '3') {
                 byte[] valueArr = Arrays.copyOfRange(record, indexTracking, indexTracking + length);
                 Integer in = ByteBuffer.wrap(valueArr).getInt();
                 indexTracking = indexTracking + Integer.BYTES;
                 valuesList.add(in);
-                System.out.println(in);
+                attrTypeList.add(type);
+                System.out.println("first value " + in);
             } else if (attrType == '4') {
                 byte[] valueArr = Arrays.copyOfRange(record, indexTracking, indexTracking + length);
                 Double dou = ByteBuffer.wrap(valueArr).getDouble();
                 indexTracking = indexTracking + Double.BYTES;
                 valuesList.add(dou);
+                attrTypeList.add(type);
                 System.out.println(dou);
             } else if (attrType == '5') {
-                //byte[] sizeString = Arrays.copyOfRange(record, indexTracking, indexTracking + 4);
-                //int size = ByteBuffer.wrap(sizeString).getInt();
                 indexTracking = indexTracking + 4;
                 byte[] strArr = Arrays.copyOfRange(record, indexTracking, indexTracking + length);
                 indexTracking = indexTracking + length;
                 String value = new String(strArr, StandardCharsets.UTF_8);
                 valuesList.add(value);
+                String charLen = String.valueOf(length);
+                String charType = type + charLen;
+                attrTypeList.add(charType);
                 System.out.println(value);
-
             } else if (attrType == '6') {
-                //byte[] sizeString = Arrays.copyOfRange(record, indexTracking, indexTracking + 4);
-                //int size = ByteBuffer.wrap(sizeString).getInt();
                 indexTracking = indexTracking + 4;
                 byte[] strArr = Arrays.copyOfRange(record, indexTracking, indexTracking + length);
                 indexTracking = indexTracking + length;
                 String value = new String(strArr, StandardCharsets.UTF_8);
                 valuesList.add(value);
+                String charLen = String.valueOf(length);
+                String charType = type + charLen;
+                attrTypeList.add(charType);
             } else {
                 System.err.println("Can't convert byte[] to Main.Record");
                 System.err.println("ERROR");
                 return null;
             }
         }
-        Record res = new Record(valuesList, new ArrayList<String>());
+        Record res = new Record(valuesList, attrTypeList);
         return res;
     }
 
@@ -245,7 +253,6 @@ public class Record {
                 case "4" : attributeInfoList.add(new AttributeInfo(type, Double.BYTES));
                     break;
                 case "5" : int length = Integer.parseInt(attributeList.get(i).substring(1));
-                    System.out.println("Calculate..... " + length);
                     attributeInfoList.add(new AttributeInfo(type, length));
                     break;
                 case "6" : String s = (String) valuesList.get(i);
@@ -268,6 +275,11 @@ public class Record {
     }
 
 
+    public int computeRecordSize(){
+        return convertRecordToByteArr(this).length;
+
+    }
+
     @Override
     public boolean equals(Object o){
         if (this == o) {
@@ -283,13 +295,13 @@ public class Record {
 
     @Override
     public String toString(){
-//        for(AttributeInfo i: attributeInfoList){
-//            System.out.println(i.toString());
-//        }
-        return "Record{ attributeInfoList = " + attributeInfoList.toString() + " attributeValList = " + attributeInfoList;
+
+        return "Record{ attributeInfoList = " + attributeInfoList.toString() + " attributeValList = " + valuesList;
 
 
     }
+
+
 
 
     }
