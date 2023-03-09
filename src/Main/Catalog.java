@@ -441,4 +441,16 @@ public class Catalog {
         return result;
     }
 
+
+    public Table getTableByName(String tableName){
+        for(Table t: tables_list){
+            if(t.getTableName().equals(tableName)){
+                return t;
+            }
+        }
+        System.err.println("Table " + tableName + " does not exist.");
+
+        return null;
+    }
+
 }
