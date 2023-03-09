@@ -1,5 +1,9 @@
 package Main;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 /**
@@ -62,15 +66,13 @@ public class PageBuffer {
             for (int i = 0; i < pagelistBuffer.size(); i++) {
                 Page pageToWrite = pagelistBuffer.get(i);
                 String tableName = pageToWrite.getTablename();
-                int numRec = pageToWrite.getNumRec();
-                int pageId = pageToWrite.getPageID();
-                ArrayList<Pointer> pointerArrayList = pageToWrite.getPointerList();
-                ArrayList<Record> recordArrayList = pageToWrite.getRecordList();
+                Table table = catalog.getTableByName(tableName);
+                int numPageInTable = table.getPageID_list().size();
+
                 byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite,this.page_size);
 
-                //byte[] tableByteArray = table.serializeTable(pageToWrite, table);
-                //TODO Serialize entire table. First element is # of page. Second is arrayList of pointers.
                 String path = this.db_loc  + "/Tables/" + tableName + ".txt";
+                PageBuffer.writeToDiskWithRandomAccess(path, pageToWrite, 0, this.page_size, numPageInTable);
                 this.storageManager.writeByteArrToDisk(path, byteArr);
             }
         } else {
@@ -79,6 +81,65 @@ public class PageBuffer {
             return false;
         }
         return true;
+    }
+
+
+    /**
+     * Write certain number of bytes to disk given a specific offset.
+     * @param path file path
+     * @param page page to be written
+     * @param offset offset to write in disk
+     * @param pageSize page size
+     */
+    public static void writeToDiskWithRandomAccess(String path, Page page, int offset, int pageSize, int numPageInTable){
+        File file = new File(path);
+
+            try {
+                RandomAccessFile randomAccessFile = new RandomAccessFile(file.getPath(), "rw");
+                byte[] numPageInTableByte = ByteBuffer.allocate(Integer.BYTES).putInt(numPageInTable).array();
+                byte[] data = page.convertPageToByteArr(page, pageSize);
+                randomAccessFile.seek(0);
+                // write in the number of pages in the first 4 bytes
+                randomAccessFile.write(numPageInTableByte);
+                randomAccessFile.seek(offset);
+                // write in whatever page bytearray to its designated index
+                randomAccessFile.write(data);
+                randomAccessFile.close();
+            } catch (IOException i) {
+                System.err.println("An error occurred while writing to the file.");
+                i.printStackTrace();
+                System.err.println("ERROR");
+            }
+
+    }
+
+    /**
+     * Read certain number of bytes at a given offset from the disk. And deserialize it into a page
+     * @param path path to file
+     * @param offset offset of where page exists in hardware
+     * @param pageSize page size that was allocated to it.
+     * @return a page
+     */
+    public static Page readFromDiskWithRandomAccess(String path, int offset, int pageSize){
+        File file = new File(path);
+        if(file.exists()){
+            try {
+                RandomAccessFile randomAccessFile = new RandomAccessFile(file.getPath(), "rw");
+                randomAccessFile.seek(offset);
+                byte[] pageByteArray = new byte[pageSize];
+                randomAccessFile.readFully(pageByteArray);
+                Page page = Page.convertByteArrToPage(pageByteArray);
+                return page;
+            } catch (IOException e) {
+                System.err.println("An error occurred while writing to the file.");
+                e.printStackTrace();
+                System.err.println("ERROR");
+            }
+        }else{
+            System.err.println("Table not exist");
+            return null;
+        }
+        return null;
     }
 
 
@@ -101,7 +162,7 @@ public class PageBuffer {
                     for (Record record : recordArrayList) {
                         boolean insertAlready = false;
                         if (table.getPageID_list().size() == 0) {
-                            checkIfBufferFull(table);
+                            removeLRUFromBufferIfOverflow(getCatalog());
                             Page page = new Page(getPageIDList().size() + 1, table.getTableName(), this.db_loc);
                             page.getRecordList().add(record);
                             page.incCurrentPageSize(record, record.convertRecordToByteArr(record));
@@ -119,14 +180,14 @@ public class PageBuffer {
                             // if not then add to pagelist buffer
                             if (!this.pagelistBuffer.contains(page)) {
                                 this.pagelistBuffer.add(page);
-                                checkIfBufferFull(table);
+                                removeLRUFromBufferIfOverflow(getCatalog());
                             //else then remove that page and add back to the last (this is the most recently use)
                             } else {
                                 int indexPage = this.pagelistBuffer.indexOf(page);
                                 if (indexPage != -1) {
                                     this.pagelistBuffer.remove(indexPage);
                                     this.pagelistBuffer.add(page);
-                                    checkIfBufferFull(table);
+                                    removeLRUFromBufferIfOverflow(getCatalog());
                                 }
 
                             }
@@ -139,7 +200,7 @@ public class PageBuffer {
                                 Page page = new Page(originalPageIDList.get(m), table.getTableName(), this.db_loc);
                                 if (!this.pagelistBuffer.contains(page)) {
                                     this.pagelistBuffer.add(page);
-                                    checkIfBufferFull(table);
+                                    removeLRUFromBufferIfOverflow(getCatalog());
                                 } else {
                                     for (Page tempPage : this.pagelistBuffer) {
                                         if (tempPage.equals(page)) {
@@ -151,7 +212,7 @@ public class PageBuffer {
                                     if (indexPage != -1) {
                                         this.pagelistBuffer.remove(indexPage);
                                         this.pagelistBuffer.add(page);
-                                        checkIfBufferFull(table);
+                                        removeLRUFromBufferIfOverflow(getCatalog());
                                     }
                                 }
 
@@ -197,7 +258,7 @@ public class PageBuffer {
                                             //add new page into buffer
                                             this.pagelistBuffer.add(newPage);
                                             //check if buffer full
-                                            checkIfBufferFull(table);
+                                            removeLRUFromBufferIfOverflow(getCatalog());
                                             ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
                                             //add the new page into the table in catalog
                                             for (Table tbl : tableListInCatalog) {
@@ -240,7 +301,7 @@ public class PageBuffer {
                                 }
 
                                 this.pagelistBuffer.add(newPage);
-                                checkIfBufferFull(table);
+                                removeLRUFromBufferIfOverflow(getCatalog());
                                 ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
                                 for (Table tbl : tableListInCatalog) {
                                     if (tbl.getTableName().equals(table.getTableName())) {
@@ -274,19 +335,18 @@ public class PageBuffer {
     /**
      * Method checks if buffer is full. If it is full then write the first page in the arraylist
      * of pages to the disk
-     * @param table table
+     * @param catalog catalog
      */
-    private void checkIfBufferFull(Table table) {
-        if (this.pagelistBuffer.size() > this.bufferSize) {
+    private void removeLRUFromBufferIfOverflow( Catalog catalog ) {
+        if (this.pagelistBuffer.size() == this.bufferSize) {
             Page pageToWrite = this.pagelistBuffer.get(0);
-            int numRec = pageToWrite.getNumRec();
-            int pageId = pageToWrite.getPageID();
-            ArrayList<Pointer> pointerArrayList = pageToWrite.getPointerList();
-            ArrayList<Record> recordArrayList = pageToWrite.getRecordList();
-            byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite, this.page_size);
             String tableName = pageToWrite.getTablename();
+            Table table = catalog.getTableByName(tableName);
             String path = this.db_loc + "/Tables/" + tableName + ".txt";
-            this.storageManager.writeByteArrToDisk(path, byteArr);
+            int numPageInTable = table.getPageID_list().size();
+            int idxOfPage = table.getPageID_list().indexOf(pageToWrite.getPageID());
+            int offset = Integer.BYTES + (page_size * idxOfPage);
+            PageBuffer.writeToDiskWithRandomAccess(path, pageToWrite,offset, this.page_size, numPageInTable);
             this.pagelistBuffer.remove(0);
         }
     }
@@ -348,7 +408,6 @@ public class PageBuffer {
         int indexOfPrimaryKey = getIndexOfColumn(primaryKey, table);
         for (int i = 0; i < strArr.length; i++) {
             char attrType = attriTypeList.get(i).charAt(0);
-            System.out.println(attrType);
             if (i == indexOfPrimaryKey) {
                 String value = strArr[i];
                 if (value.equalsIgnoreCase("null")) {
@@ -432,7 +491,6 @@ public class PageBuffer {
                 return null;
             }
         }
-        //TODO
         return new Record(valuesList, new ArrayList<String>());
     }
 
@@ -706,7 +764,7 @@ public class PageBuffer {
                 }
             } else {
                 this.pagelistBuffer.add(page);
-                checkIfBufferFull(table);
+                removeLRUFromBufferIfOverflow(getCatalog());
             }
             ArrayList<Record> recordArrayList = page.getRecordList();
             for (int j = 0; j < recordArrayList.size(); j++) {
