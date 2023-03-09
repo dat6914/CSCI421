@@ -1,5 +1,6 @@
 package Main;
 
+import java.awt.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -159,26 +160,38 @@ public class Page {
         numRec = getNumRec();
         byte[] result = new byte[page_size];
         byte[] numRecordArr = ByteBuffer.allocate(Integer.BYTES).putInt(numRec).array();
-        System.arraycopy(numRecordArr, 0, result, indextracking, numRecordArr.length);
-        byte[] pageId = ByteBuffer.allocate(Integer.BYTES).putInt(pageID).array();
-        System.arraycopy(pageId,0,result,indextracking + Integer.BYTES,pageId.length);
 
+        System.arraycopy(numRecordArr, 0, result, indextracking, numRecordArr.length);
+        // byte arr at idx 4
+        indextracking += numRecordArr.length;
+        byte[] pageId = ByteBuffer.allocate(Integer.BYTES).putInt(pageID).array();
+
+        System.arraycopy(pageId,0,result,indextracking,pageId.length);
 
         // result = [INDEX]
-        indextracking = indextracking + numRecordArr.length + pageId.length;
+        indextracking += pageId.length;
+
+        //idx start at 8
         int offset = page_size;
         for (int i = 0; i < numRec; i++) {
             Pointer pointer = pointerList.get(i);
             byte[] pointerByte = pointer.serializePointer();
-            System.arraycopy(pointerByte,0,result,indextracking+pointerByte.length,pointerByte.length);
+            System.arraycopy(pointerByte,0,result,indextracking,pointerByte.length);
             indextracking += pointerByte.length;
 
+            // **
             Record record = record_list.get(i);
             byte[] recordArr = record.convertRecordToByteArr(record);
+            System.out.println("recordArr: " + recordArr);
             int recLength = recordArr.length;
-            offset += recLength;
+            offset -= recLength;
+
+            System.out.println(recLength);
+            System.out.println(pointer);
+
 
             System.arraycopy(recordArr,0,result, offset,recLength);
+            System.out.println("first record offset = " + offset);
 
         }
         return result;
@@ -193,23 +206,39 @@ public class Page {
     public static Page convertByteArrToPage(byte[] byteArr) {
         ArrayList<Record> recordArrayList = new ArrayList<>();
         ByteBuffer byteBuffer = ByteBuffer.wrap(byteArr);
-        int recordNum = byteBuffer.getInt(0);
-        int pageId = byteBuffer.getInt(4);
+        int recordNum = byteBuffer.getInt();
+        int pageId = byteBuffer.getInt();
         ArrayList<Pointer> pointersList = new ArrayList<>();
         int indextracking = 8;
+        System.out.println("recordNum: " + recordNum);
+        System.out.println("pageId: " + pageId);
+
 
         for (int i = 0; i < recordNum; i++) {
 
-            int offset = byteBuffer.getInt(indextracking);
-            indextracking = indextracking + Integer.BYTES;
-            int length = byteBuffer.getInt(indextracking);
-            indextracking = indextracking + Integer.BYTES;
-            Pointer pointer = new Pointer(offset,length);
+            System.out.println("234324");
+
+            // get the next 8 bytes for Pointer.
+            byte[] pointerByteArr = Arrays.copyOfRange(byteArr, indextracking, indextracking + 8);
+            indextracking += pointerByteArr.length;
+            Pointer pointer = Pointer.deserializePointer(pointerByteArr);
+            int offset = pointer.getOffset();
+            int length = pointer.getLength();
+            System.out.println(pointer);
             pointersList.add(pointer);
 
-            byte[] recordArr = Arrays.copyOfRange(byteArr, offset, offset-length);
+            System.out.println("-==32");
+            System.out.println(offset);
+            System.out.println(offset+length);
+            System.out.println("---324");
+
+            // ***
+            byte[] recordArr = Arrays.copyOfRange(byteArr, offset, length);
+            System.out.println("deserialize recordArr: " + recordArr.toString());
             Record record = Record.convertByteArrToRecord(recordArr);
             recordArrayList.add(record);
+            System.out.println("record = " + record);
+
         }
 
         Page page = new Page(recordNum,pageId,pointersList,recordArrayList);

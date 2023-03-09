@@ -6,13 +6,15 @@ import org.junit.jupiter.api.Test;
 import Main.Record;
 import java.util.ArrayList;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 public class PageTest{
     @Test
     void pageTest(){
         ArrayList<Pointer> pointerArrayList = new ArrayList<Pointer>();
         ArrayList<Record> records = new ArrayList<Record>();
-        Pointer pointer = new Pointer(500,50);
-        Pointer pointer1 = new Pointer(450,50);
+
+
         ArrayList<Object> valueList = new ArrayList<>();
         valueList.add(3);
         valueList.add(3.7);
@@ -22,15 +24,24 @@ public class PageTest{
         attributeTypeList.add("4");
         attributeTypeList.add("52");
         Record record = new Record(valueList,attributeTypeList);
-        int numRec = 1;
+        Record record1 = new Record(valueList,attributeTypeList);
+        int len1 = record.computeRecordSize();
+        int len2 = record1.computeRecordSize();
+        Pointer pointer = new Pointer(4096,len1);
+        Pointer pointer1 = new Pointer(4096-len2,len2);
+        int numRec = 2;
         int pageId = 1;
         int pagesize = 4096;
+        records.add(record);
+        records.add(record1);
+        pointerArrayList.add(pointer);
+        pointerArrayList.add(pointer1);
 
         Page page1 = new Page(numRec,pageId,pointerArrayList,records);
         byte[] pageByte = page1.convertPageToByteArr(page1,numRec,pageId,pointerArrayList,records,pagesize);
         Page page2  = Page.convertByteArrToPage(pageByte);
 
-
+        assertEquals(page1,page2);
     }
 
 }

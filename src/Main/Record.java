@@ -175,10 +175,11 @@ public class Record {
     public static Record convertByteArrToRecord(byte[] record) {
         ArrayList<Object> valuesList = new ArrayList<>();
         ArrayList<String> attrTypeList = new ArrayList<>();
-        System.out.println(record);
         ByteBuffer result = ByteBuffer.wrap(record);
         //int recordSize = result.getInt(0);
-        int numValue = result.getInt(0);
+
+        int numValue = result.getInt();
+        System.out.println("numValue " + numValue);
 
         int indexTracking = Integer.BYTES;
         for (int i = 0; i < numValue; i++) {
@@ -242,7 +243,7 @@ public class Record {
     }
 
     public ArrayList<AttributeInfo> calculateAttributeInfo(ArrayList<String> attributeList){
-        ArrayList<AttributeInfo> attributeInfoList = new ArrayList<AttributeInfo>();
+        ArrayList<AttributeInfo> attributeInfoList = new ArrayList<>();
         for(int i = 0; i < valuesList.size(); i++){
             String type = attributeList.get(i).substring(0,1);
             switch(type){
@@ -290,7 +291,7 @@ public class Record {
         }
 
         Record that = (Record) o;
-        return valuesList.equals(that.valuesList) && attributeInfoList == that.attributeInfoList;
+        return valuesList.equals(that.valuesList) && attributeInfoList.equals(that.attributeInfoList);
     }
 
     @Override

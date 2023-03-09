@@ -47,7 +47,7 @@ public class Pointer {
      * @param pointerByteArray
      * @return Main.Pointer object
      */
-    public Pointer deserializePointer(byte[] pointerByteArray){
+    public static Pointer deserializePointer(byte[] pointerByteArray){
         int idx = 0;
         byte[] offsetByteArray = Arrays.copyOfRange(pointerByteArray, idx, idx + Integer.BYTES);
         int offset = ByteBuffer.wrap(offsetByteArray).getInt();
@@ -56,5 +56,23 @@ public class Pointer {
         int length = ByteBuffer.wrap(lengthByteArray).getInt();
         Pointer p = new Pointer(offset, length);
         return p;
+    }
+
+    @Override
+    public String toString(){
+        return "Offset = " + offset + " length = " + length;
+    }
+
+    @Override
+    public boolean equals(Object o){
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        Pointer that = (Pointer) o;
+        return offset == that.offset && length == that.length;
     }
 }
