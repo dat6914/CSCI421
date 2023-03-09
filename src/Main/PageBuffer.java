@@ -62,10 +62,6 @@ public class PageBuffer {
             for (int i = 0; i < pagelistBuffer.size(); i++) {
                 Page pageToWrite = pagelistBuffer.get(i);
                 String tableName = pageToWrite.getTablename();
-                int numRec = pageToWrite.getNumRec();
-                int pageId = pageToWrite.getPageID();
-                ArrayList<Pointer> pointerArrayList = pageToWrite.getPointerList();
-                ArrayList<Record> recordArrayList = pageToWrite.getRecordList();
                 byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite,this.page_size);
 
                 //byte[] tableByteArray = table.serializeTable(pageToWrite, table);
@@ -576,7 +572,22 @@ public class PageBuffer {
      * @param table table name
      */
     public void selectStarFromTable(Table table) {
-        ArrayList<Record> recordList = getAllRecordsByTable(table);
+        //ArrayList<Record> recordList = getAllRecordsByTable(table);
+        ArrayList<Integer> pageid_list = table.getPageID_list();
+        for(int i = 0; i < pageid_list.size(); i++){
+            int pageid = pagelistBuffer.get(i).getPageID();
+            if(pageid == pageid_list.get(i)){
+                Page page = pagelistBuffer.get(i);
+                int index = 4;
+
+                        i * page_size
+                // todo: pull from hardward
+                // check if record list.size is not 0
+                // print not success
+                // else get the table attribute name list and print
+
+            }
+        }
         if (recordList != null) {
             if (recordList.size() == 0) {
                 System.out.println("No record in this table.");
