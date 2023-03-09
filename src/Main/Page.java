@@ -154,17 +154,16 @@ public class Page {
      * @param page
      * @return byte array of page
      */
-    public byte[] convertPageToByteArr(Page page,int numRec,int pageID,ArrayList<Pointer> pointerList,ArrayList<Record> record_list, int page_size) {
+    public byte[] convertPageToByteArr(Page page,ArrayList<Pointer> pointerList,ArrayList<Record> record_list, int page_size) {
         // ArraayList<Main.Pointer> pointer_list = page.getPointer
         int indextracking = 0;
-        //numRec = page.getNumRec();
         byte[] result = new byte[page_size];
-        byte[] numRecordArr = ByteBuffer.allocate(Integer.BYTES).putInt(numRec).array();
+        byte[] numRecordArr = ByteBuffer.allocate(Integer.BYTES).putInt(page.getNumRec()).array();
 
         System.arraycopy(numRecordArr, 0, result, indextracking, numRecordArr.length);
         // byte arr at idx 4
         indextracking += numRecordArr.length;
-        byte[] pageId = ByteBuffer.allocate(Integer.BYTES).putInt(pageID).array();
+        byte[] pageId = ByteBuffer.allocate(Integer.BYTES).putInt(page.getPageID()).array();
 
         System.arraycopy(pageId,0,result,indextracking,pageId.length);
 
@@ -173,7 +172,7 @@ public class Page {
 
         //idx start at 8
         int offset = page_size;
-        for (int i = 0; i < numRec; i++) {
+        for (int i = 0; i < page.getNumRec(); i++) {
             Pointer pointer = pointerList.get(i);
             byte[] pointerByte = pointer.serializePointer();
             System.arraycopy(pointerByte,0,result,indextracking,pointerByte.length);

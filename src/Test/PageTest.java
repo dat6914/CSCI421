@@ -27,8 +27,8 @@ public class PageTest{
         Record record1 = new Record(valueList,attributeTypeList);
         int len1 = record.computeRecordSize();
         int len2 = record1.computeRecordSize();
-        Pointer pointer = new Pointer(4096,len1);
-        Pointer pointer1 = new Pointer(4096-len2,len2);
+        Pointer pointer = new Pointer(4059,len1);
+        Pointer pointer1 = new Pointer(4059-len2,len2);
         int numRec = 2;
         int pageId = 1;
         int pagesize = 4096;
@@ -38,7 +38,7 @@ public class PageTest{
         pointerArrayList.add(pointer1);
 
         Page page1 = new Page(numRec,pageId,pointerArrayList,records);
-        byte[] pageByte = page1.convertPageToByteArr(page1,numRec,pageId,pointerArrayList,records,pagesize);
+        byte[] pageByte = page1.convertPageToByteArr(page1,pointerArrayList,records,pagesize);
         Page page2  = Page.convertByteArrToPage(pageByte);
 
         assertEquals(page1,page2);
