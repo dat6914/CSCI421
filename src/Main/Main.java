@@ -77,14 +77,34 @@ public class Main {
 
         while(true) {
             System.out.println("\nPlease enter commands, enter <quit> to shutdown the database > ");
-            String input = scanner.nextLine().trim();
+            //String input = scanner.nextLine().trim();
+            String input = "";
+
+            StringBuilder strBuilder = new StringBuilder();
+
+
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+
+                if (line.contains(";")) {
+                    strBuilder.append(line.substring(0, line.indexOf(";")));
+                    break;
+                }
+                else {
+                    strBuilder.append(line);
+                }
+            }
+
+            input = strBuilder.toString().replaceAll("\\s+", " ").trim();
+            input += ";";
+
             String[] optionArr = input.split(" ");
             if (input.equals("display schema;")) {
                 Catalog catalog = pageBuffer.getCatalog();
                 pageBuffer.getCatalog().displaySchema(args[0], page_size, buffer_size, catalog);
 
             } else if (optionArr[0].equals("display") && optionArr[1].equals("info") && optionArr.length == 3) {
-                if (optionArr[2].charAt(optionArr[2].length()-1) == ';') {
+                if (optionArr[2].charAt(optionArr[2].length() - 1) == ';') {
                     optionArr[2] = optionArr[2].substring(0, optionArr[2].length() - 1);
                 }
                 Table table = pageBuffer.getStorageManager().getTableByName(optionArr[2]);
@@ -102,7 +122,8 @@ public class Main {
                 if (pageBuffer.quitProgram(pageBuffer.getStorageManager(), pageBuffer.getPagelistBuffer())) {
                     System.out.println("Safely shutting down the database...");
                     System.out.println("Writing pages in the page buffer successfully...");
-                    System.out.println("Saving catalog successfully...");;
+                    System.out.println("Saving catalog successfully...");
+                    ;
                     System.out.println("\nExisting the database...");
                 } else {
                     System.err.println("\nERROR");
@@ -113,7 +134,7 @@ public class Main {
                 pageBuffer.insertRecordToTable(input, optionArr[2]);
 
             } else if (optionArr[0].equals("select") && optionArr[1].equals("*") && optionArr[2].equals("from") && optionArr.length == 4) {
-                if (optionArr[3].charAt(optionArr[3].length()-1) == ';') {
+                if (optionArr[3].charAt(optionArr[3].length() - 1) == ';') {
                     optionArr[3] = optionArr[3].substring(0, optionArr[3].length() - 1);
                 }
                 Table table = pageBuffer.getStorageManager().getTableByName(optionArr[3]);
@@ -124,8 +145,8 @@ public class Main {
 
 
             } else if (optionArr[0].equals("get") && optionArr[1].equals("page") && optionArr[3].equals("in") &&
-                    optionArr[4].equals("table") && optionArr.length==6) {
-                if (optionArr[5].charAt(optionArr[5].length()-1) == ';') {
+                    optionArr[4].equals("table") && optionArr.length == 6) {
+                if (optionArr[5].charAt(optionArr[5].length() - 1) == ';') {
                     optionArr[5] = optionArr[5].substring(0, optionArr[5].length() - 1);
                 }
                 Table table = pageBuffer.getStorageManager().getTableByName(optionArr[5]);
@@ -174,7 +195,11 @@ public class Main {
                     System.err.println("ERROR");
                 }
 
-            } else {
+            } else if (optionArr[0].equals("alter") && optionArr[1].equals("table")) {
+                //TODO: alter table
+            }
+
+            else {
                 System.err.println("It is not a valid command.");
 
             }
