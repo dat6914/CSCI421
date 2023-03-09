@@ -61,12 +61,11 @@ public class Page {
     public int computeCurrentPagesize(ArrayList<Record> record_list) {
 
         int size = 0;
-
-
+        // bytes for totalRecordNum
         size = size + Integer.BYTES;
         int pointerSize = Integer.BYTES * 2;
         for (Record record : record_list) {
-            size = size + record.getValuesList().size() + 8 + convertRecordToByteArr(record, this.table).length;
+            size = size + pointerSize + convertRecordToByteArr(record).length;
         }
 
         return size;
@@ -185,7 +184,7 @@ public class Page {
         for (int i = 0; i < numRecord; i++) {
             Record record = record_list.get(i);
 
-            byte[] recordArr = convertRecordToByteArr(record, table);
+            byte[] recordArr = convertRecordToByteArr(record);
             int length = recordArr.length;
             indexReverse = indexReverse - length;
             byte[] offSetArr = ByteBuffer.allocate(4).putInt(indexReverse).array();
@@ -223,7 +222,7 @@ public class Page {
             indextracking = indextracking + 4;
 
             byte[] recordArr = Arrays.copyOfRange(byteArr, offset, offset+length);
-            Record record = Record.convertByteArrToRecord(recordArr, table);
+            Record record = Record.convertByteArrToRecord(recordArr);
             recordArrayList.add(record);
         }
         return recordArrayList;
@@ -244,11 +243,12 @@ public class Page {
     /**
      * This method converts record object of a table to byte[]
      * @param record record object need to be converted to byte[]
-     * @param table table object that the record belongs to
      * @return byte[] of record including checking attribute types
      */
-    public byte[] convertRecordToByteArr(Record record, Table table) {
+    public byte[] convertRecordToByteArr(Record record) {
         ArrayList<Object> valuesList = record.getValuesList();
+
+        //TODO
         ArrayList<String> attrTypeList = table.getAttriType_list();
         ByteBuffer result = ByteBuffer.allocate(0);
         int numValue = valuesList.size();
@@ -263,6 +263,7 @@ public class Page {
 
         for (int i = 0; i < valuesList.size(); i++) {
             Object temp = valuesList.get(i);
+
             char valueType = attrTypeList.get(i).charAt(0);
             if (valueType == '2' && temp instanceof Boolean) {
                 boolean bo = (Boolean) temp;

@@ -102,12 +102,12 @@ public class PageBuffer {
                             checkIfBufferFull(table);
                             Page page = new Page(getPageIDList().size() + 1, table, this.db_loc);
                             page.getRecordList().add(record);
-                            page.incCurrentPageSize(record, page.convertRecordToByteArr(record, table));
+                            page.incCurrentPageSize(record, page.convertRecordToByteArr(record));
                             table.getPageID_list().add(getPageIDList().size() + 1);
                             table.increaseNumRecordBy1();
 
                             // change split
-                            if (page.convertRecordToByteArr(record,table).length> this.page_size) {
+                            if (page.convertRecordToByteArr(record).length> this.page_size) {
                                 System.out.println("page size"+this.page_size);
                                 System.err.println("This record is bigger than page size");
                                 return false;
@@ -169,7 +169,7 @@ public class PageBuffer {
                                     if (compare < 0) {
                                         System.out.println(this.page_size);
                                         page.getRecordList().add(i, record);
-                                        page.incCurrentPageSize(record, page.convertRecordToByteArr(record, table));
+                                        page.incCurrentPageSize(record, page.convertRecordToByteArr(record));
                                         table.increaseNumRecordBy1();
                                         int currentPagesize = page.getCurrent_page_size();
                                         //check if page overflows
@@ -188,8 +188,8 @@ public class PageBuffer {
                                             //decrement page 1 size after splitting
                                             //increment those into page 2
                                             for (Record rec : halfRecord) {
-                                                page.decCurrentPageSize(rec, page.convertRecordToByteArr(rec, table));
-                                                newPage.incCurrentPageSize(rec, newPage.convertRecordToByteArr(rec, table));
+                                                page.decCurrentPageSize(rec, page.convertRecordToByteArr(rec));
+                                                newPage.incCurrentPageSize(rec, newPage.convertRecordToByteArr(rec));
                                             }
 
                                             //add new page into buffer
@@ -220,7 +220,7 @@ public class PageBuffer {
                                 }
                             }
                             lastPage.getRecordList().add(record);
-                            lastPage.incCurrentPageSize(record, lastPage.convertRecordToByteArr(record, table));
+                            lastPage.incCurrentPageSize(record, lastPage.convertRecordToByteArr(record));
                             table.increaseNumRecordBy1();
                             int currentPagesize = lastPage.getCurrent_page_size();
                             if (currentPagesize > this.page_size) {
@@ -233,8 +233,8 @@ public class PageBuffer {
                                 Page newPage = new Page(getPageIDList().size() + 1, table, this.db_loc);
                                 newPage.getRecordList().addAll(halfRecord);
                                 for (Record rec : halfRecord) {
-                                    lastPage.decCurrentPageSize(rec, lastPage.convertRecordToByteArr(rec, table));
-                                    newPage.incCurrentPageSize(rec, newPage.convertRecordToByteArr(rec, table));
+                                    lastPage.decCurrentPageSize(rec, lastPage.convertRecordToByteArr(rec));
+                                    newPage.incCurrentPageSize(rec, newPage.convertRecordToByteArr(rec));
                                 }
 
                                 this.pagelistBuffer.add(newPage);
