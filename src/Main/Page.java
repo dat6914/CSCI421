@@ -25,11 +25,13 @@ public class Page {
     private int current_page_size;
     private ArrayList<Pointer> pointerList;
     private String DBLocation;
+    private String tablename;
 
 
     public Page(int pageID, String tableName, String DBLocation ) {
         this.pageID = pageID;
         this.DBLocation = DBLocation;
+        this.tablename = tableName;
         //this.record_list = getRecordListFromPage(pageID);
         this.current_page_size = computeCurrentPagesize(record_list);
     }
@@ -42,6 +44,10 @@ public class Page {
         this.pointerList = pointers;
         this.record_list = record_list;
 
+    }
+
+    public String getTablename(){
+        return this.tablename;
     }
 
 

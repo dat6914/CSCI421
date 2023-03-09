@@ -61,12 +61,14 @@ public class PageBuffer {
             this.storageManager.writeByteArrToDisk(catalogPath, catalogByteArr);
             for (int i = 0; i < pagelistBuffer.size(); i++) {
                 Page pageToWrite = pagelistBuffer.get(i);
-                Table table = pageToWrite.getTable();
-                String tableName = table.getTableName();
+                String tableName = pageToWrite.getTablename();
+                int numRec = pageToWrite.getNumRec();
+                int pageId = pageToWrite.getPageID();
+                ArrayList<Pointer> pointerArrayList = pageToWrite.getPointerList();
+                ArrayList<Record> recordArrayList = pageToWrite.getRecordList();
+                byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite,numRec,pageId,pointerArrayList,recordArrayList,this.page_size);
 
-                byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite, table, this.page_size);
-
-                byte[] tableByteArray = table.serializeTable(pageToWrite, table);
+                //byte[] tableByteArray = table.serializeTable(pageToWrite, table);
                 //TODO Serialize entire table. First element is # of page. Second is arrayList of pointers.
                 String path = this.db_loc  + "/Tables/" + tableName + ".txt";
                 this.storageManager.writeByteArrToDisk(path, byteArr);
@@ -100,7 +102,7 @@ public class PageBuffer {
                         boolean insertAlready = false;
                         if (table.getPageID_list().size() == 0) {
                             checkIfBufferFull(table);
-                            Page page = new Page(getPageIDList().size() + 1, table, this.db_loc);
+                            Page page = new Page(getPageIDList().size() + 1, table.getTableName(), this.db_loc);
                             page.getRecordList().add(record);
                             page.incCurrentPageSize(record, record.convertRecordToByteArr(record));
                             table.getPageID_list().add(getPageIDList().size() + 1);
@@ -134,7 +136,7 @@ public class PageBuffer {
 
                             for (int m = 0; m < originalPageIDList.size(); m++) {
 
-                                Page page = new Page(originalPageIDList.get(m), table, this.db_loc);
+                                Page page = new Page(originalPageIDList.get(m), table.getTableName(), this.db_loc);
                                 if (!this.pagelistBuffer.contains(page)) {
                                     this.pagelistBuffer.add(page);
                                     checkIfBufferFull(table);
@@ -182,7 +184,7 @@ public class PageBuffer {
                                             }
 
                                             page.getRecordList().subList(midpoint, page.getRecordList().size()).clear();
-                                            Page newPage = new Page(getPageIDList().size() + 1, table, this.db_loc);
+                                            Page newPage = new Page(getPageIDList().size() + 1, table.getTableName(), this.db_loc);
                                             newPage.getRecordList().addAll(halfRecord);
 
                                             //decrement page 1 size after splitting
@@ -212,7 +214,7 @@ public class PageBuffer {
                         }
                         if (!insertAlready) {
                             ArrayList<Integer> pageIDList = table.getPageID_list();
-                            Page lastPage = new Page(pageIDList.get(pageIDList.size() - 1), table, this.db_loc);
+                            Page lastPage = new Page(pageIDList.get(pageIDList.size() - 1), table.getTableName(), this.db_loc);
                             for (Page tempPage : this.pagelistBuffer) {
                                 if (tempPage.equals(lastPage)) {
                                     lastPage = tempPage;
@@ -230,7 +232,7 @@ public class PageBuffer {
                                     halfRecord.add(lastPage.getRecordList().get(j));
                                 }
                                 lastPage.getRecordList().subList(midpoint, lastPage.getRecordList().size()).clear();
-                                Page newPage = new Page(getPageIDList().size() + 1, table, this.db_loc);
+                                Page newPage = new Page(getPageIDList().size() + 1, table.getTableName(), this.db_loc);
                                 newPage.getRecordList().addAll(halfRecord);
                                 for (Record rec : halfRecord) {
                                     lastPage.decCurrentPageSize(rec, record.convertRecordToByteArr(rec));
@@ -277,8 +279,12 @@ public class PageBuffer {
     private void checkIfBufferFull(Table table) {
         if (this.pagelistBuffer.size() > this.bufferSize) {
             Page pageToWrite = this.pagelistBuffer.get(0);
-            byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite, table, this.page_size);
-            String tableName = pageToWrite.getTable().getTableName();
+            int numRec = pageToWrite.getNumRec();
+            int pageId = pageToWrite.getPageID();
+            ArrayList<Pointer> pointerArrayList = pageToWrite.getPointerList();
+            ArrayList<Record> recordArrayList = pageToWrite.getRecordList();
+            byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite,numRec,pageId,pointerArrayList,recordArrayList, this.page_size);
+            String tableName = pageToWrite.getTablename();
             String path = this.db_loc + "/Tables/" + tableName + ".txt";
             this.storageManager.writeByteArrToDisk(path, byteArr);
             this.pagelistBuffer.remove(0);
@@ -604,7 +610,7 @@ public class PageBuffer {
         ArrayList<Integer> pageIDlist = table.getPageID_list();
         for (int i = 0; i < pageIDlist.size(); i++) {
             int pageID = pageIDlist.get(i);
-            Page page = new Page(pageID, table, this.db_loc);
+            Page page = new Page(pageID, table.getTableName(), this.db_loc);
             if (this.pagelistBuffer.contains(page)) {
                 for (Page tempPage : this.pagelistBuffer) {
                     if (tempPage.equals(page)) {
@@ -652,7 +658,7 @@ public class PageBuffer {
         ArrayList<Integer> pageList = table.getPageID_list();
         for (int i = 0; i < pageList.size(); i++) {
             if (i == pageNum - 1) {
-                Page page = new Page(pageList.get(i), table, this.db_loc);
+                Page page = new Page(pageList.get(i), table.getTableName(), this.db_loc);
                 if (this.pagelistBuffer.contains(page)) {
                     for (Page tempPage : this.pagelistBuffer) {
                         if (tempPage.equals(page)) {
@@ -690,7 +696,7 @@ public class PageBuffer {
         ArrayList<Integer> pageIDlist = table.getPageID_list();
         for (int i = 0; i < pageIDlist.size(); i++) {
             int pageID = pageIDlist.get(i);
-            Page page = new Page(pageID, table, this.db_loc);
+            Page page = new Page(pageID, table.getTableName(), this.db_loc);
             if (this.pagelistBuffer.contains(page)) {
                 for (Page tempPage : this.pagelistBuffer) {
                     if (tempPage.equals(page)) {
