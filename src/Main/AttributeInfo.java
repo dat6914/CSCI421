@@ -48,7 +48,7 @@ public class AttributeInfo {
         return attributeInfoByteArray;
     }
 
-    public AttributeInfo deserializeAttributeInfo(byte[] byteArray){
+    public static AttributeInfo deserializeAttributeInfo(byte[] byteArray){
         int idx = 0;
 
 
@@ -72,7 +72,15 @@ public class AttributeInfo {
         }
 
         AttributeInfo that = (AttributeInfo) o;
-        return type.equals(this.type) && length == that.length;
+        return type.equals(that.type) && length == that.length;
+    }
+
+    @Override
+    public String toString(){
+        System.out.println("Attribute Type: " + type);
+        System.out.println("Attribute Length: " + length);
+
+        return "AttributeInfo{type = " + type + " , length = " + length + "}";
     }
 
 }
