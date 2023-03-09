@@ -89,14 +89,18 @@ public class Main {
                 if (line.contains(";")) {
                     strBuilder.append(line.substring(0, line.indexOf(";")));
                     break;
-                }
-                else {
+                } else if (line.contains("<quit>")) {
+                    strBuilder.append(line);
+                    break;
+                } else {
                     strBuilder.append(line);
                 }
             }
 
             input = strBuilder.toString().replaceAll("\\s+", " ").trim();
-            input += ";";
+            if (!input.contains("<quit>")) {
+                input += ";";
+            }
 
             String[] optionArr = input.split(" ");
             if (input.equals("display schema;")) {
