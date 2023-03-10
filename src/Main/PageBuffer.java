@@ -85,7 +85,7 @@ public class PageBuffer {
                     }
                 }
 
-                this.storageManager.getCatalog().getTablesList().remove(table);
+                //this.storageManager.getCatalog().getTablesList().remove(table);
                 Files.deleteIfExists(Paths.get(this.db_loc + "/" + tableName + ".txt"));
 
                 //String path = this.db_loc + "/Tables/" + tableName + ".txt";
@@ -883,6 +883,7 @@ public class PageBuffer {
         for (int i = 0; i < pageIDlist.size(); i++) {
             int pageID = pageIDlist.get(i);
             Page page = new Page(pageID, table.getTableName(), this.db_loc);
+
             if (this.pagelistBuffer.contains(page)) {
                 for (Page tempPage : this.pagelistBuffer) {
                     if (tempPage.equals(page)) {
@@ -890,11 +891,15 @@ public class PageBuffer {
                         break;
                     }
                 }
-            } else {
+            }
+
+            else {
                 this.pagelistBuffer.add(page);
                 removeLRUFromBufferIfOverflow(getCatalog());
             }
+
             ArrayList<Record> recordArrayList = page.getRecordList();
+
             for (int j = 0; j < recordArrayList.size(); j++) {
                 Record record = recordArrayList.get(j);
                 ArrayList<Object> valuesList = record.getValuesList();
@@ -916,15 +921,28 @@ public class PageBuffer {
         return printRecord(record);
     }
 
-    //TODO: check what the extension of the file is
-    public boolean dropTable(String tableName) throws IOException {
+    public boolean dropTable(String tableName) {
         Table table = this.storageManager.getTableByName(tableName);
 
         if (table != null) {
             tablesMarkedForDeletion.add(table);
+            this.storageManager.getCatalog().getTablesList().remove(table);
 
             return true;
         }
+        return false;
+    }
+
+    public boolean dropAttribute(String attrName, String tableName) {
+        Table table = this.storageManager.getTableByName(tableName);
+
+        //drop attribute from table by just making a new table with the same name but without the attribute
+        if (table != null) {
+            //create copy of table
+
+
+        }
+
         return false;
     }
 }

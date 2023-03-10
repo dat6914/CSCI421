@@ -212,7 +212,8 @@ public class Main {
 
                     //TODO: drop attribute
 
-                    pageBuffer.getStorageManager().dropAttribute(optionArr[4], optionArr[2]);
+                    pageBuffer.dropAttribute(optionArr[4], optionArr[2]);
+                    System.out.println("\nSUCCESS");
 
 
                 }
