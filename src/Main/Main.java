@@ -230,9 +230,7 @@ public class Main {
                     }
 
                 }
-            }
-
-            else {
+            } else {
                 System.err.println("This is not a valid command.");
 
             }
