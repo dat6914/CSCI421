@@ -392,7 +392,10 @@ public class StorageManager {
     public void dropAttribute(String attribute, String tableName) {
         Table table = getTableByName(tableName);
         if (table != null) {
-            //TODO drop attribute
+            //TODO get all records under the attribute and delete them
+
+
+            //table.getAttriName_list().remove(attribute);
         }
     }
 }

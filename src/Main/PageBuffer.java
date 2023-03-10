@@ -62,7 +62,7 @@ public class PageBuffer {
      *
      * @param storageManager storage manager
      * @param pagelistBuffer arraylist of page in buffer
-     * @return true if successfully otherwise false
+     * @return true if successful otherwise false
      */
     public boolean quitProgram(StorageManager storageManager, ArrayList<Page> pagelistBuffer) throws IOException {
         Catalog catalog = storageManager.getCatalog();
