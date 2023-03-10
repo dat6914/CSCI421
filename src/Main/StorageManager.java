@@ -108,17 +108,17 @@ public class StorageManager {
         // check if the table already exists
         for (Table tbl : this.catalog.getTablesList()) {
             if (tbl.getTableName().equals(nameTable)) {
-                System.err.println("Main.Table of name " + nameTable + " already exists.");
+                System.err.println("Table of name " + nameTable + " already exists.");
                 System.err.println("ERROR");
                 return null;
             }
         }
 
-        System.out.println(table);
+        //System.out.println(table);
         //loop through the rest of the input
         for (int i = 3; i < table.length; i++) {
             String inStr = table[i];
-            System.out.println("inStr: " + inStr);
+            //System.out.println("inStr: " + inStr);
             //index of datatype before "primarykey" is even
             if (i < indexOfprimaryKey) {
                 if (i%2 == 0) {

@@ -671,6 +671,12 @@ public class PageBuffer {
         // check if record list.size is not 0
         // else get the table attribute name list and print
         ArrayList<Integer> pageid_list = table.getPageID_list();
+        if (pageid_list.size() == 0) {
+            for (String attributeName : table.getAttriName_list()) {
+                System.out.println("  |  " + attributeName + "  |  ");
+            }
+            System.out.println("\n");
+        }
         int index = 4;
         for (int i = 0; i < pageid_list.size(); i++) {
             Page page = findPageInBuffer(table.getPageID_list().get(i), this);
@@ -696,7 +702,7 @@ public class PageBuffer {
                     System.out.println("\n");
                 }
 
-            }else{
+            } else{
                 if (page.getRecordList() != null) {
                     if (page.getRecordList().size() == 0) {
                         System.out.println("No record in table: " + table.getTableName());
