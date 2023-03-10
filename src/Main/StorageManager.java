@@ -389,19 +389,6 @@ public class StorageManager {
         return false;
     }
 
-    //TODO: check what the extension of the file is
-    public boolean dropTable(String tableName) throws IOException {
-        Table table = getTableByName(tableName);
-
-        if (table != null) {
-            this.catalog.getTablesList().remove(table);
-            Files.deleteIfExists(Paths.get(db_loc + "/" + tableName + ".txt"));
-
-            return true;
-        }
-        return false;
-    }
-
     public void dropAttribute(String attribute, String tableName) {
         Table table = getTableByName(tableName);
         if (table != null) {

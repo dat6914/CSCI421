@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 /**
@@ -24,6 +26,8 @@ public class PageBuffer {
     private ArrayList<Page> pagelistBuffer = new ArrayList<>();
     private int bufferSize;
     private StorageManager storageManager;
+
+    private ArrayList<Table> tablesMarkedForDeletion = new ArrayList<>();
 
 
     public PageBuffer(String db_loc, int bufferSize, int page_size) {
@@ -60,12 +64,35 @@ public class PageBuffer {
      * @param pagelistBuffer arraylist of page in buffer
      * @return true if successfully otherwise false
      */
-    public boolean quitProgram(StorageManager storageManager, ArrayList<Page> pagelistBuffer) {
+    public boolean quitProgram(StorageManager storageManager, ArrayList<Page> pagelistBuffer) throws IOException {
         Catalog catalog = storageManager.getCatalog();
         if (catalog != null) {
             byte[] catalogByteArr = catalog.convertCatalogToByteArr(catalog);
             String catalogPath = this.db_loc + "/catalog.txt";
             this.storageManager.writeByteArrToDisk(catalogPath, catalogByteArr);
+
+            // dropping tables
+            for (int i = 0; i < tablesMarkedForDeletion.size(); i++) {
+                Table table = tablesMarkedForDeletion.get(i);
+                String tableName = table.getTableName();
+
+                // check if any pages in the buffer are from the table that is being deleted
+                for (int j = 0; j < pagelistBuffer.size(); j++) {
+                    Page page = pagelistBuffer.get(j);
+
+                    if (page.getTablename().equals(tableName)) {
+                        pagelistBuffer.remove(page);
+                    }
+                }
+
+                this.storageManager.getCatalog().getTablesList().remove(table);
+                Files.deleteIfExists(Paths.get(this.db_loc + "/" + tableName + ".txt"));
+
+                //String path = this.db_loc + "/Tables/" + tableName + ".txt";
+                //File file = new File(path);
+                //file.delete();
+            }
+
             for (int i = 0; i < pagelistBuffer.size(); i++) {
                 Page pageToWrite = pagelistBuffer.get(i);
                 String tableName = pageToWrite.getTablename();
@@ -78,8 +105,10 @@ public class PageBuffer {
                 PageBuffer.writeToDiskWithRandomAccess(path, pageToWrite, 0, this.page_size, numPageInTable);
                 this.storageManager.writeByteArrToDisk(path, byteArr);
             }
+
+
         } else {
-            System.err.println("Fails to write catalog to file!");
+            System.err.println("Failed to write catalog to file!");
             System.err.println("ERROR");
             return false;
         }
@@ -885,6 +914,18 @@ public class PageBuffer {
      */
     public String getRecordByPrimary(Record record) {
         return printRecord(record);
+    }
+
+    //TODO: check what the extension of the file is
+    public boolean dropTable(String tableName) throws IOException {
+        Table table = this.storageManager.getTableByName(tableName);
+
+        if (table != null) {
+            tablesMarkedForDeletion.add(table);
+
+            return true;
+        }
+        return false;
     }
 }
 

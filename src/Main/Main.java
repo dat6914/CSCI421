@@ -193,7 +193,9 @@ public class Main {
                 if (optionArr[2].charAt(optionArr[2].length() - 1) == ';') {
                     optionArr[2] = optionArr[2].substring(0, optionArr[2].length() - 1);
                 }
-                if (pageBuffer.getStorageManager().dropTable(optionArr[2])) {
+                if (pageBuffer.dropTable(optionArr[2])) {
+
+                    System.out.println("\nTable has been marked for drop, changes will be finalized on quit.");
                     System.out.println("\nSUCCESS");
                 } else {
                     System.err.println("No such table " + optionArr[2]);
