@@ -63,7 +63,7 @@ public class Main {
             System.out.println("Restarting the database...");
         }
 
-        System.out.println("Main.Page Size: " + page_size);
+        System.out.println("Page Size: " + page_size);
         System.out.println("Buffer Size: " + buffer_size);
 
         //Main.StorageManager storageManager = new Main.StorageManager(db_loc, page_size, buffer_size);
@@ -82,10 +82,11 @@ public class Main {
 
             StringBuilder strBuilder = new StringBuilder();
 
-
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
-
+                if(line.charAt(line.length()-1) != ' '){
+                    line = line + " ";
+                }
                 if (line.contains(";")) {
                     strBuilder.append(line.substring(0, line.indexOf(";")));
                     break;
@@ -114,7 +115,7 @@ public class Main {
                 Table table = pageBuffer.getStorageManager().getTableByName(optionArr[2]);
                 if (table != null) {
                     pageBuffer.getCatalog().displayInfoTable(table);
-                    System.out.println("\nSUCCESS");
+                    System.out.println("SUCCESS");
                 }
 
             } else if (optionArr[0].equals("create") && optionArr[1].equals("table") && optionArr.length > 3) {

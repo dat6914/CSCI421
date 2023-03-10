@@ -13,7 +13,6 @@ This implementation include:
 
 How to run the program:
     This text is attached with the src folder which contain every Java code files
-
     Run this command:
             java Main <db loc> <page_size> <buffer_size>
 
