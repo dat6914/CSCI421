@@ -84,7 +84,7 @@ public class Catalog {
      */
     public void displaySchema(String location, int pageSize, int bufferSize, Catalog catalog) {
         System.out.println("DB location: " + location);
-        System.out.println("Main.Page Size: " + pageSize);
+        System.out.println("Page Size: " + pageSize);
         System.out.println("Buffer Size: " + bufferSize);
         System.out.println("Tables: \n");
 
@@ -136,9 +136,9 @@ public class Catalog {
      */
     public static String tableToString(Table table) {
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("Main.Table Name: ");
+        stringBuilder.append("Table Name: ");
         stringBuilder.append(table.getTableName()).append("\n");
-        stringBuilder.append("Main.Table schema: \n");
+        stringBuilder.append("Table schema: \n");
         ArrayList<String> attriNameList = table.getAttriName_list();
         ArrayList<String> attriTypeList = table.getAttriType_list();
         String primarykeyName = table.getPrimaryKeyName();
@@ -452,5 +452,7 @@ public class Catalog {
 
         return null;
     }
+
+
 
 }
