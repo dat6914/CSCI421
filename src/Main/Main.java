@@ -120,6 +120,7 @@ public class Main {
 
             } else if (optionArr[0].equals("create") && optionArr[1].equals("table") && optionArr.length > 3) {
                 if (pageBuffer.getStorageManager().createTable(input) != null) {
+                    System.out.println("input in main create table :"+input);
                     System.out.println("\nSUCCESS");
                 }
 
