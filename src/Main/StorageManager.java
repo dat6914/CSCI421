@@ -20,6 +20,7 @@ public class StorageManager {
     private Catalog catalog;
 
     private Catalog tempCatalog;
+    private boolean dropAttributeFlag;
 
     public StorageManager(String db_loc, int page_size, int buffer_size) {
         this.db_loc = db_loc;
@@ -398,5 +399,17 @@ public class StorageManager {
     public boolean updateRecord(String tableName, String primaryKeyValue, String inputRecordUpdate) {
 
         return false;
+    }
+
+    public void setDropAttributeFlag(boolean b) {
+        this.dropAttributeFlag = b;
+    }
+
+    public boolean getDropAttributeFlag() {
+        return this.dropAttributeFlag;
+    }
+
+    public void setCatalog(Catalog tempCatalog) {
+        this.catalog = tempCatalog;
     }
 }

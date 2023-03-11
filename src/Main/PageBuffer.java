@@ -65,6 +65,13 @@ public class PageBuffer {
      * @return true if successful otherwise false
      */
     public boolean quitProgram(StorageManager storageManager, ArrayList<Page> pagelistBuffer) throws IOException {
+        if (this.storageManager.getDropAttributeFlag() == true) {
+            storageManager.setCatalog(storageManager.getTempCatalog());
+
+            this.storageManager.setDropAttributeFlag(false);
+            return true;
+        }
+
         Catalog catalog = storageManager.getCatalog();
         if (catalog != null) {
             byte[] catalogByteArr = catalog.convertCatalogToByteArr(catalog);
@@ -92,6 +99,8 @@ public class PageBuffer {
                 //File file = new File(path);
                 //file.delete();
             }
+
+
 
             for (int i = 0; i < pagelistBuffer.size(); i++) {
                 Page pageToWrite = pagelistBuffer.get(i);
@@ -916,7 +925,7 @@ public class PageBuffer {
 
             String newPrimary = table.getPrimaryKeyName();
 
-            int attributeIndex = 0;
+            int attributeIndex = getIndexOfColumn(attrName, table);
             for (int i = 0; i < table.getAttriName_list().size(); i++) {
                 if (table.getAttriName_list().get(i).equals(attrName)) {
                     attributeIndex = i;
@@ -961,6 +970,9 @@ public class PageBuffer {
             //add new table to catalog
             this.storageManager.getTempCatalog().getTablesList().remove(table);
             this.storageManager.getTempCatalog().getTablesList().add(newTable);
+
+            //set drop attribute flag to true
+            this.storageManager.setDropAttributeFlag(true);
         }
 
         return false;
