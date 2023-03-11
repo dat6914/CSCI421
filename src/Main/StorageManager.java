@@ -19,11 +19,15 @@ public class StorageManager {
     private int buffer_size;
     private Catalog catalog;
 
+    private Catalog tempCatalog;
+    private boolean dropAttributeFlag;
+
     public StorageManager(String db_loc, int page_size, int buffer_size) {
         this.db_loc = db_loc;
         this.page_size = page_size;
         this.buffer_size = buffer_size;
         this.catalog = new Catalog(db_loc);
+        this.tempCatalog = this.catalog;
     }
 
     /**
@@ -32,6 +36,14 @@ public class StorageManager {
      */
     public Catalog getCatalog() {
         return this.catalog;
+    }
+
+    public Catalog getTempCatalog() {
+        return this.tempCatalog;
+    }
+
+    public void setTempCatalog(Catalog catalog) {
+        this.tempCatalog = catalog;
     }
 
 
@@ -389,23 +401,32 @@ public class StorageManager {
         return false;
     }
 
-    //TODO: check what the extension of the file is
-    public boolean dropTable(String tableName) throws IOException {
-        Table table = getTableByName(tableName);
-
-        if (table != null) {
-            this.catalog.getTablesList().remove(table);
-            Files.deleteIfExists(Paths.get(db_loc + "/" + tableName + ".txt"));
-
-            return true;
-        }
-        return false;
+    public void setDropAttributeFlag(boolean b) {
+        this.dropAttributeFlag = b;
     }
 
-    public void dropAttribute(String attribute, String tableName) {
-        Table table = getTableByName(tableName);
-        if (table != null) {
-            //TODO drop attribute
+    public boolean getDropAttributeFlag() {
+        return this.dropAttributeFlag;
+    }
+
+    public void setCatalog(Catalog tempCatalog) {
+        this.catalog = tempCatalog;
+    }
+
+    public AttributeInfo convertToAttributeInfo(String attriType) {
+
+        switch (attriType) {
+            case "boolean" : return new AttributeInfo("2", 1);
+
+            case "int" : return new AttributeInfo("3", Integer.BYTES);
+
+            case "double" : return new AttributeInfo("4", Double.BYTES);
+
+            case "char" : return new AttributeInfo("5", Integer.parseInt(attriType.substring(1)));
+
+            case "varchar" : return new AttributeInfo("6", attriType.length());
+
+            default: return null;
         }
     }
 }

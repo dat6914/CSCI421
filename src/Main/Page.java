@@ -118,6 +118,39 @@ public class Page {
         return this.record_list;
     }
 
+    public ArrayList<Pointer> getPointerList(){
+        return this.pointerList;
+    }
+
+    /**
+     * Methods gets the list of records from a particular page from a given table
+     * @param pageID page ID
+     * @return Arraylist of record
+     */
+//    public ArrayList<Record> getRecordListFromPage(int pageID,){
+//
+//    }
+
+    /**
+     * Method read the page file
+     * @param path path of page file
+     * @return byte array of page file
+     */
+    public static byte[] readPageFile(String path) {
+        try {
+            File file = new File(path);
+            FileInputStream fs = new FileInputStream(file);
+            byte[] arr = new byte[(int) file.length()];
+            fs.read(arr);
+            fs.close();
+            return arr;
+        } catch (IOException e) {
+            System.err.println("An error occurred while reading the file.");
+            e.printStackTrace();
+            System.err.println("ERROR");
+            return null;
+        }
+    }
 
     public int getNumRec(){
         return this.record_list.size();
@@ -186,6 +219,7 @@ public class Page {
             byte[] recordArr = Arrays.copyOfRange(byteArr, offset, offset+length);
             Record record = Record.convertByteArrToRecord(recordArr);
             recordArrayList.add(record);
+
         }
 
         Page page = new Page(pageID, tablename, recordArrayList);

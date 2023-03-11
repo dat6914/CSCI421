@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,6 +29,9 @@ public class PageBuffer {
     private int bufferSize;
     private StorageManager storageManager;
     private ArrayList<Integer> pageIDListOfCatalog = new ArrayList<>(); //keep track of pageID, for unique
+
+    private ArrayList<Table> tablesMarkedForDeletion = new ArrayList<>();
+
 
     public PageBuffer(String db_loc, int bufferSize, int page_size) {
         this.db_loc = db_loc;
@@ -56,8 +61,8 @@ public class PageBuffer {
      * @return catalog
      */
     public Catalog getCatalog() {
-        return storageManager.getCatalog();
-    }
+        return this.storageManager.getCatalog();
+    }   //TODO: see if this causes issues, IT SHOULDNT, but if anything then we gotta have
 
     /**
      * Method displays the display schema
@@ -97,14 +102,39 @@ public class PageBuffer {
      *
      * @param storageManager storage manager
      * @param pagelistBuffer arraylist of page in buffer
-     * @return true if successfully otherwise false
+     * @return true if successful otherwise false
      */
-    public boolean quitProgram(StorageManager storageManager, ArrayList<Page> pagelistBuffer) {
+    public boolean quitProgram(StorageManager storageManager, ArrayList<Page> pagelistBuffer) throws IOException {
         Catalog catalog = storageManager.getCatalog();
         if (catalog != null) {
             byte[] catalogByteArr = catalog.convertCatalogToByteArr(catalog);
             String catalogPath = this.db_loc + "/catalog.txt";
             this.storageManager.writeByteArrToDisk(catalogPath, catalogByteArr);
+
+            // dropping tables
+            for (int i = 0; i < tablesMarkedForDeletion.size(); i++) {
+                Table table = tablesMarkedForDeletion.get(i);
+                String tableName = table.getTableName();
+
+                // check if any pages in the buffer are from the table that is being deleted
+                for (int j = 0; j < pagelistBuffer.size(); j++) {
+                    Page page = pagelistBuffer.get(j);
+
+                    if (page.getTablename().equals(tableName)) {
+                        pagelistBuffer.remove(page);
+                    }
+                }
+
+                //this.storageManager.getCatalog().getTablesList().remove(table);
+                Files.deleteIfExists(Paths.get(this.db_loc + "/" + tableName + ".txt"));
+
+                //String path = this.db_loc + "/Tables/" + tableName + ".txt";
+                //File file = new File(path);
+                //file.delete();
+            }
+
+
+
             for (int i = 0; i < pagelistBuffer.size(); i++) {
                 Page pageToWrite = pagelistBuffer.get(i);
                 String tableName = pageToWrite.getTablename();
@@ -142,8 +172,10 @@ public class PageBuffer {
                 //this.storageManager.writeByteArrToDisk(path, byteArr);
             }
 
+
+
         } else {
-            System.err.println("Fails to write catalog to file!");
+            System.err.println("Failed to write catalog to file!");
             System.err.println("ERROR");
             return false;
         }
@@ -899,9 +931,11 @@ public class PageBuffer {
         String primaryKeyName = table.getPrimaryKeyName();
         int indexOfPrimary = getIndexOfColumn(primaryKeyName, table);
         ArrayList<Integer> pageIDlist = table.getPageID_list();
+
         for (int i = 0; i < pageIDlist.size(); i++) {
             int pageID = pageIDlist.get(i);
             Page page = new Page(pageID, table.getTableName(), this.db_loc);
+
             if (this.pagelistBuffer.contains(page)) {
                 for (Page tempPage : this.pagelistBuffer) {
                     if (tempPage.equals(page)) {
@@ -909,11 +943,15 @@ public class PageBuffer {
                         break;
                     }
                 }
-            } else {
+            }
+
+            else {
                 this.pagelistBuffer.add(page);
                 removeLRUFromBufferIfOverflow(getCatalog());
             }
+
             ArrayList<Record> recordArrayList = page.getRecordList();
+
             for (int j = 0; j < recordArrayList.size(); j++) {
                 Record record = recordArrayList.get(j);
                 ArrayList<Object> valuesList = record.getValuesList();
@@ -1446,6 +1484,171 @@ public class PageBuffer {
 //        }
 //    }
 
+
+    public boolean dropTable(String tableName) {
+        Table table = this.storageManager.getTableByName(tableName);
+
+        if (table != null) {
+            tablesMarkedForDeletion.add(table);
+            this.storageManager.getCatalog().getTablesList().remove(table);
+
+            return true;
+        }
+        return false;
+    }
+
+    public boolean dropAttribute(String attrName, String tableName) {
+        Table table = this.storageManager.getTableByName(tableName);
+        this.storageManager.setTempCatalog(this.storageManager.getTempCatalog());   //this is the catalog that will get written upon quit.
+
+        //drop attribute from table by just making a new table with the same name but without the attribute
+        if (table != null) {
+
+            if (!table.getAttriName_list().contains(attrName)) {
+                System.err.println("Attribute " + attrName + " does not exist in table.");
+                return false;
+            }
+
+            if (table.getAttriName_list().size() == 1) {
+                System.err.println("Cannot drop the only attribute in a table.");
+                return false;
+            }
+
+            if (table.getPrimaryKeyName().equals(attrName)) {
+                System.err.println("Cannot drop the primary key of a table.");
+                return false;
+            }
+
+            //create new table to shove shit into
+            //gather all the info from the old table (primarykey, attrinamelist, attritypelist, pageidlist)
+            //remove the attribute from the attrinamelist, maybe if we make the new table without the attribute in the list it wont get the data?
+
+            String newPrimary = table.getPrimaryKeyName();
+
+            int attributeIndex = getIndexOfColumn(attrName, table);
+            for (int i = 0; i < table.getAttriName_list().size(); i++) {
+                if (table.getAttriName_list().get(i).equals(attrName)) {
+                    attributeIndex = i;
+                }
+            }
+
+            //table.getAttriName_list().remove(attributeIndex);
+            ArrayList<String> newAttriNameList = new ArrayList<>();
+            ArrayList<String> newAttriTypeList = new ArrayList<>();
+
+            for (int i = 0; i < table.getAttriName_list().size(); i++) {
+                if (i != attributeIndex) {
+                    newAttriNameList.add(table.getAttriName_list().get(i));
+                    newAttriTypeList.add(table.getAttriType_list().get(i));
+                }
+            }
+
+            for (int i = 0; i < table.getPageID_list().size(); i++) {
+                Page page = new Page(table.getPageID_list().get(i), table.getTableName(), this.db_loc);
+                //ArrayList<Record> records = getAllRecordsByTable(table);
+                ArrayList<Record> records = page.getRecordList();
+
+                for (int j = 0; j < records.size(); j++) {
+                    records.get(j).getValuesList().remove(attributeIndex); // i hope this is how it works??
+                    records.get(j).getAttributeInfoList().remove(attributeIndex);
+
+                }
+                //add new records to page
+                page.setRecordList(records);
+
+                //add page to buffer if there is room
+
+                if (this.pagelistBuffer.size() < this.bufferSize) {
+                    this.pagelistBuffer.add(page);
+                }
+                else {
+                    removeLRUFromBufferIfOverflow(getCatalog());
+                    this.pagelistBuffer.add(page);
+                }
+
+            }
+
+            /*
+            for (int i = 0; i < pagelistBuffer.size(); i++) {
+                Page pageToWrite = pagelistBuffer.get(i);
+                String tableName = pageToWrite.getTablename();
+                Table table = catalog.getTableByName(tableName);
+                int numPageInTable = table.getPageID_list().size();
+
+                byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite, this.page_size);
+
+                String path = this.db_loc + "/Tables/" + tableName + ".txt";
+                PageBuffer.writeToDiskWithRandomAccess(path, pageToWrite, 0, this.page_size, numPageInTable);
+                this.storageManager.writeByteArrToDisk(path, byteArr);
+            }
+             */
+
+            //create new table with the new data
+            Table newTable = new Table(tableName, newPrimary, newAttriNameList, newAttriTypeList, db_loc, table.getPageID_list());
+
+            //set new table to catalog
+            this.storageManager.getCatalog().getTablesList().remove(table);
+            this.storageManager.getCatalog().getTablesList().add(newTable);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean addAttribute(String tableName, String attrName, String attrType, boolean hasDefault, String defaultValue) {
+        Table table = this.storageManager.getTableByName(tableName);
+        this.storageManager.setTempCatalog(this.storageManager.getTempCatalog());
+
+        if (table != null) {
+            if (table.getAttriName_list().contains(attrName)) {
+                System.err.println("Attribute " + attrName + " already exists in table.");
+
+                return false;
+            }
+
+            Table newTable = new Table(tableName, table.getPrimaryKeyName(), table.getAttriName_list(), table.getAttriType_list(), db_loc, table.getPageID_list());
+
+            newTable.getAttriName_list().add(attrName);
+            newTable.getAttriType_list().add(attrType);
+
+            for (int i = 0; i < table.getPageID_list().size(); i++) {
+                Page page = new Page(table.getPageID_list().get(i), table.getTableName(), this.db_loc);
+                ArrayList<Record> records = page.getRecordList();
+
+                for (int j = 0; j < records.size(); j++) {
+
+                    if (hasDefault) {
+                        records.get(j).getValuesList().add(defaultValue);
+                    }
+                    else {
+                        records.get(j).getValuesList().add(null);
+                    }
+
+                    records.get(j).getAttributeInfoList().add(this.storageManager.convertToAttributeInfo(attrType));
+                }
+                //set new records to page
+                page.setRecordList(records);
+
+                //add page to buffer if there is room
+                if (this.pagelistBuffer.size() < this.bufferSize) {
+                    this.pagelistBuffer.add(page);
+                }
+                else {
+                    removeLRUFromBufferIfOverflow(getCatalog());
+                    this.pagelistBuffer.add(page);
+                }
+            }
+
+            //set new table to catalog
+            this.storageManager.getCatalog().getTablesList().remove(table);
+            this.storageManager.getCatalog().getTablesList().add(newTable);
+
+            return true;
+        }
+
+        return false;
+    }
 }
 
 

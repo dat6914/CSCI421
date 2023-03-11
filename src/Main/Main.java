@@ -154,6 +154,7 @@ public class Main {
                     System.out.println("\nSUCCESS");
                 }
 
+
             } else if (optionArr[0].equals("get") && optionArr[1].equals("page") && optionArr[3].equals("in") &&
                     optionArr[4].equals("table") && optionArr.length == 6) {
                 if (optionArr[5].charAt(optionArr[5].length() - 1) == ';') {
@@ -195,10 +196,13 @@ public class Main {
                 }
 
             } else if (optionArr[0].equals("drop") && optionArr[1].equals("table") && optionArr.length == 3) {
+                //TODO: test drop table
                 if (optionArr[2].charAt(optionArr[2].length() - 1) == ';') {
                     optionArr[2] = optionArr[2].substring(0, optionArr[2].length() - 1);
                 }
-                if (pageBuffer.getStorageManager().dropTable(optionArr[2])) {
+                if (pageBuffer.dropTable(optionArr[2])) {
+
+                    System.out.println("\nTable has been marked for drop, old file will be removed on quit.");
                     System.out.println("\nSUCCESS");
                 } else {
                     System.err.println("No such table " + optionArr[2]);
@@ -206,36 +210,61 @@ public class Main {
                 }
 
             } else if (optionArr[0].equals("alter") && optionArr[1].equals("table")) {
-                optionArr[optionArr.length- 1] = optionArr[optionArr.length- 1].substring(0, optionArr[optionArr.length- 1].length() - 1);
-                //TODO: alter table
+                //optionArr[optionArr.length- 1] = optionArr[optionArr.length- 1].substring(0, optionArr[optionArr.length- 1].length() - 1);
+                if (optionArr[optionArr.length - 1].charAt(optionArr[optionArr.length - 1].length() - 1) == ';') {
+                    optionArr[optionArr.length - 1] = optionArr[optionArr.length - 1].substring(0, optionArr[optionArr.length - 1].length() - 1);
+                }
 
-                if (optionArr[2].equals("drop") && optionArr.length == 5) {
+                if (optionArr[3].equals("drop") && optionArr.length == 5) {
                     // drop <a name>: will remove the attribute with the given name from the table;
                     //including its data. drop is a keyword.
 
-                    //TODO: drop attribute
+                    //TODO: test drop attribute
 
-                    pageBuffer.getStorageManager().dropAttribute(optionArr[4], optionArr[2]);
+                    if (pageBuffer.dropAttribute(optionArr[4], optionArr[2])) {
+                        System.out.println("\nSUCCESS");
+                    }
 
+                    else {
+                        System.err.println("No such table " + optionArr[2]);
+                        System.err.println("\nERROR");
+                    }
 
                 }
-                else if (optionArr[2].equals("add")) {
-                    optionArr[optionArr.length- 1] = optionArr[optionArr.length- 1].substring(0, optionArr[optionArr.length- 1].length() - 1);
+                else if (optionArr[3].equals("add")) {
+                    //TODO: Test add attribute
+
+                    //optionArr[optionArr.length- 1] = optionArr[optionArr.length- 1].substring(0, optionArr[optionArr.length- 1].length() - 1);
+
                     // add <a name> <a type>: will add the attribute with the given name and type to the table;
                     //including its data. add is a keyword.
 
                     if (optionArr.length == 6) {
-                        //TODO no default
+                        if (pageBuffer.addAttribute(optionArr[2], optionArr[4], optionArr[5], false, null)) {
+                            System.out.println("\nSUCCESS");
+                        }
+                        else {
+                            System.err.println("No such table " + optionArr[2]);
+                            System.err.println("\nERROR");
+                        }
+
                     }
-                    else if (optionArr[6].equals("default")) {
-                        //TODO with default
+                    else if (optionArr.length > 6) {
+                        if (pageBuffer.addAttribute(optionArr[2], optionArr[4], optionArr[5], true, optionArr[7])) {
+                            System.out.println("\nSUCCESS");
+                        }
+                        else {
+                            System.err.println("No such table " + optionArr[2]);
+                            System.err.println("\nERROR");
+                        }
                     }
                     else {
                         System.err.println("This is not a valid command.");
                     }
 
                 }
-            } else {
+            }
+            else {
                 System.err.println("This is not a valid command.");
 
             }
