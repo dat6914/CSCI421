@@ -91,14 +91,27 @@ public class StorageManager {
             }
         }
         table = result.toArray(new String[0]);
+        System.out.println("should only contains whats in the (): "+ result);
 
         //check if there is any primarykey or many primarykey
         int primarykeyNum = 0;
         int indexOfprimaryKey = 0;
+        // so knows when the actual value starts
+        ArrayList<String> constraints = new ArrayList<>();
+        int indexOfConstraints = 2;
         for (int i = 0; i < table.length; i++) {
             if (table[i].equalsIgnoreCase("primarykey")) {
                 primarykeyNum++;
                 indexOfprimaryKey = i;
+            }
+            if (table[i].equalsIgnoreCase("notnull")){
+                indexOfConstraints = i;
+                constraints.add(table[i]);
+            }
+            if (table[i].equalsIgnoreCase("unique")) {
+                indexOfConstraints = i;
+                constraints.add(table[i]);
+
             }
         }
         if (primarykeyNum == 0) {
@@ -110,6 +123,7 @@ public class StorageManager {
             System.err.println("ERROR");
             return null;
         }
+
 
         //variables for create new Main.Table: table name, primarykeyName, attriNameList, attriTypeList
         String nameTable = table[2];
@@ -126,9 +140,8 @@ public class StorageManager {
             }
         }
 
-        //System.out.println(table);
         //loop through the rest of the input
-        for (int i = 3; i < table.length; i++) {
+        for (int i = indexOfConstraints+1; i < table.length; i++) {
             String inStr = table[i];
             //System.out.println("inStr: " + inStr);
             //index of datatype before "primarykey" is even
@@ -181,7 +194,7 @@ public class StorageManager {
 
         //adding table to table list
         ArrayList<Integer> pageList = new ArrayList<>();
-        Table newTable = new Table(nameTable, primarykeyName, attriNameList, attriTypeList, this.db_loc, pageList);
+        Table newTable = new Table(nameTable, primarykeyName, attriNameList, attriTypeList, this.db_loc, pageList,constraints);
         this.catalog.getTablesList().add(newTable);
         return newTable;
     }
