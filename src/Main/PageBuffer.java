@@ -756,36 +756,6 @@ public class PageBuffer {
     }
 
 
-
-    /**
-     * Method prints all the records of a table
-     * @param table table name
-     */
-//    public void selectStarFromTable(Table table) {
-//        ArrayList<Record> recordList = getAllRecordsByTable(table);
-//        if (recordList != null) {
-//            if (recordList.size() == 0) {
-//                System.out.println("No record in this table.");
-//                System.out.println("SUCCESS");
-//            } else {
-//                for (String name : table.getAttriName_list()) {
-//                    System.out.print("  |  " + name + "  |  ");
-//                }
-//                System.out.print("\n");
-//
-//                for (Record record : recordList) {
-//                    System.out.println(printRecord(record));
-//                }
-//            }
-//        } else {
-//            for (String name : table.getAttriName_list()) {
-//                System.out.print("  |  " + name + "  |  ");
-//            }
-//            System.out.print("\n");
-//        }
-//    }
-
-
     /**
      * Method get all records in the table by table name
      * @param table table
@@ -880,6 +850,7 @@ public class PageBuffer {
         String primaryKeyName = table.getPrimaryKeyName();
         int indexOfPrimary = getIndexOfColumn(primaryKeyName, table);
         ArrayList<Integer> pageIDlist = table.getPageID_list();
+
         for (int i = 0; i < pageIDlist.size(); i++) {
             int pageID = pageIDlist.get(i);
             Page page = new Page(pageID, table.getTableName(), this.db_loc);
@@ -935,12 +906,61 @@ public class PageBuffer {
 
     public boolean dropAttribute(String attrName, String tableName) {
         Table table = this.storageManager.getTableByName(tableName);
+        this.storageManager.setTempCatalog(this.storageManager.getTempCatalog());   //this is the catalog that will get written upon quit.
 
         //drop attribute from table by just making a new table with the same name but without the attribute
         if (table != null) {
-            //create copy of table
+            //create new table to shove shit into
+            //gather all the info from the old table (primarykey, attrinamelist, attritypelist, pageidlist)
+            //remove the attribute from the attrinamelist, maybe if we make the new table without the attribute in the list it wont get the data?
+
+            String newPrimary = table.getPrimaryKeyName();
+
+            int attributeIndex = 0;
+            for (int i = 0; i < table.getAttriName_list().size(); i++) {
+                if (table.getAttriName_list().get(i).equals(attrName)) {
+                    attributeIndex = i;
+                }
+            }
+
+            //table.getAttriName_list().remove(attributeIndex);
+            ArrayList<String> newAttriNameList = new ArrayList<>();
+            ArrayList<String> newAttriTypeList = new ArrayList<>();
+
+            for (int i = 0; i < table.getAttriName_list().size(); i++) {
+                if (i != attributeIndex) {
+                    newAttriNameList.add(table.getAttriName_list().get(i));
+                    newAttriTypeList.add(table.getAttriType_list().get(i));
+                }
+            }
 
 
+            // get data (records) from old table sans the attribute ones
+            //ArrayList<Record> newRecords = new ArrayList<>();
+
+            for (int i = 0; i < table.getPageID_list().size(); i++) {
+                Page page = new Page(table.getPageID_list().get(i), table.getTableName(), this.db_loc);
+                ArrayList<Record> records = page.getRecordList();
+
+                for (int j = 0; j < records.size(); j++) {
+                    //ArrayList<Object> values = records.get(j).getValuesList();
+                    records.get(j).getValuesList().remove(attributeIndex); // i hope this is how it works??
+
+                    records.get(j).getAttributeInfoList().remove(attributeIndex);
+                    //TODO: test if just adjusting the records works or if we need to make a new record
+
+                    //ArrayList<AttributeInfo> newAttriInfoList = records.get(j).getAttributeInfoList();
+                    //Record newRecord = new Record(values, newAttriInfoList);
+                    //newRecords.add(newRecord);
+                }
+            }
+
+            //create new table with the new data
+            Table newTable = new Table(tableName, newPrimary, newAttriNameList, newAttriTypeList, db_loc, table.getPageID_list());
+
+            //add new table to catalog
+            this.storageManager.getTempCatalog().getTablesList().remove(table);
+            this.storageManager.getTempCatalog().getTablesList().add(newTable);
         }
 
         return false;

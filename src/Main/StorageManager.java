@@ -19,11 +19,14 @@ public class StorageManager {
     private int buffer_size;
     private Catalog catalog;
 
+    private Catalog tempCatalog;
+
     public StorageManager(String db_loc, int page_size, int buffer_size) {
         this.db_loc = db_loc;
         this.page_size = page_size;
         this.buffer_size = buffer_size;
         this.catalog = new Catalog(db_loc);
+        this.tempCatalog = this.catalog;
     }
 
     /**
@@ -32,6 +35,14 @@ public class StorageManager {
      */
     public Catalog getCatalog() {
         return this.catalog;
+    }
+
+    public Catalog getTempCatalog() {
+        return this.tempCatalog;
+    }
+
+    public void setTempCatalog(Catalog catalog) {
+        this.tempCatalog = catalog;
     }
 
 
