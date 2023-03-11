@@ -203,17 +203,25 @@ public class Main {
                 }
 
             } else if (optionArr[0].equals("alter") && optionArr[1].equals("table")) {
-                optionArr[optionArr.length- 1] = optionArr[optionArr.length- 1].substring(0, optionArr[optionArr.length- 1].length() - 1);
+                //optionArr[optionArr.length- 1] = optionArr[optionArr.length- 1].substring(0, optionArr[optionArr.length- 1].length() - 1);
                 //TODO: alter table
 
-                if (optionArr[2].equals("drop") && optionArr.length == 5) {
+                if (optionArr[3].equals("drop") && optionArr.length == 5) {
                     // drop <a name>: will remove the attribute with the given name from the table;
                     //including its data. drop is a keyword.
 
-                    //TODO: drop attribute
+                    //TODO: test drop attribute
 
-                    pageBuffer.dropAttribute(optionArr[4], optionArr[2]);
-                    System.out.println("\nSUCCESS");
+                    if (pageBuffer.dropAttribute(optionArr[4], optionArr[2])) {
+                        System.out.println("\nSUCCESS");
+                    }
+
+                    else {
+                        System.err.println("No such table " + optionArr[2]);
+                        System.err.println("ERROR");
+                    }
+
+
 
 
                 }
@@ -233,7 +241,8 @@ public class Main {
                     }
 
                 }
-            } else {
+            }
+            else {
                 System.err.println("This is not a valid command.");
 
             }

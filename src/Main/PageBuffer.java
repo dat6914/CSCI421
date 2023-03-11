@@ -919,6 +919,22 @@ public class PageBuffer {
 
         //drop attribute from table by just making a new table with the same name but without the attribute
         if (table != null) {
+
+            if (!table.getAttriName_list().contains(attrName)) {
+                System.err.println("Attribute " + attrName + " does not exist in table.");
+                return false;
+            }
+
+            if (table.getAttriName_list().size() == 1) {
+                System.err.println("Cannot drop the only attribute in a table.");
+                return false;
+            }
+
+            if (table.getPrimaryKeyName().equals(attrName)) {
+                System.err.println("Cannot drop the primary key of a table.");
+                return false;
+            }
+
             //create new table to shove shit into
             //gather all the info from the old table (primarykey, attrinamelist, attritypelist, pageidlist)
             //remove the attribute from the attrinamelist, maybe if we make the new table without the attribute in the list it wont get the data?
@@ -973,6 +989,8 @@ public class PageBuffer {
 
             //set drop attribute flag to true
             this.storageManager.setDropAttributeFlag(true);
+
+            return true;
         }
 
         return false;
