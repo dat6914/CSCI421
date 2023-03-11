@@ -25,7 +25,7 @@ public class Record {
     private int recordSize;
 
     /**
-     * Constructor of Main.Record
+     * Constructor of Record
      * @param valuesList the arraylist of values
      */
     public Record(ArrayList<Object> valuesList, ArrayList<String> attributeList) {
@@ -107,14 +107,10 @@ public class Record {
             } else if (Objects.equals(valueType, "5") && temp instanceof String) {
 
                 int size = attributeInfo.getLength();
-                //int size = 0;
-//                if (Page.isInteger(stringSize)) {
-//                    size = Integer.parseInt(stringSize);
-//                }
 
                 int stringLength = ((String) temp).length();
                 if (stringLength < size - 1) {
-                    byte[] sizeString = ByteBuffer.allocate(4).putInt(stringLength + 1).array();
+                    byte[] sizeString = ByteBuffer.allocate(Integer.BYTES).putInt(stringLength + 1).array();
                     result = Page.appendByteBuffer(result, sizeString);
                     byte[] strArr = ((String) temp).getBytes(StandardCharsets.UTF_8);
                     ByteBuffer buffer = ByteBuffer.allocate(strArr.length + 1);
@@ -123,7 +119,7 @@ public class Record {
                     result = Page.appendByteBuffer(result, buffer.array());
 
                 } else if (stringLength == size) {
-                    byte[] sizeString = ByteBuffer.allocate(4).putInt(stringLength).array();
+                    byte[] sizeString = ByteBuffer.allocate(Integer.BYTES).putInt(stringLength).array();
                     result = Page.appendByteBuffer(result, sizeString);
                     byte[] strArr = ((String) temp).getBytes(StandardCharsets.UTF_8);
                     result = Page.appendByteBuffer(result, strArr);
@@ -134,13 +130,11 @@ public class Record {
                 }
             } else if (Objects.equals(valueType, "6") && temp instanceof String) {
                 String stringSize = attrTypeList.get(i).substring(1);
-                int size = 0;
-                if (Page.isInteger(stringSize)) {
-                    size = Integer.parseInt(stringSize);
-                }
+                int size = attributeInfo.getLength();
+
                 int stringLength = ((String) temp).length();
                 if (stringLength < size - 1) {
-                    byte[] sizeString = ByteBuffer.allocate(4).putInt(stringLength + 1).array();
+                    byte[] sizeString = ByteBuffer.allocate(Integer.BYTES).putInt(stringLength + 1).array();
                     result = Page.appendByteBuffer(result, sizeString);
                     byte[] strArr = ((String) temp).getBytes(StandardCharsets.UTF_8);
                     ByteBuffer buffer = ByteBuffer.allocate(strArr.length + 1);
@@ -149,7 +143,7 @@ public class Record {
                     result = Page.appendByteBuffer(result, buffer.array());
 
                 } else if (stringLength == size) {
-                    byte[] sizeString = ByteBuffer.allocate(4).putInt(stringLength).array();
+                    byte[] sizeString = ByteBuffer.allocate(Integer.BYTES).putInt(stringLength).array();
                     result = Page.appendByteBuffer(result, sizeString);
                     byte[] strArr = ((String) temp).getBytes(StandardCharsets.UTF_8);
                     result = Page.appendByteBuffer(result, strArr);
@@ -228,7 +222,7 @@ public class Record {
                 String charType = type + charLen;
                 attrTypeList.add(charType);
             } else {
-                System.err.println("Can't convert byte[] to Main.Record");
+                System.err.println("Can't convert byte[] to Record");
                 System.err.println("ERROR");
                 return null;
             }
@@ -254,6 +248,7 @@ public class Record {
                 case "6" : String s = (String) valuesList.get(i);
                     int len = s.length();
                     attributeInfoList.add(new AttributeInfo(type, len));
+                    break;
                 }
             }
 
@@ -297,9 +292,6 @@ public class Record {
 
     }
 
-
-
-
-    }
+}
 
 

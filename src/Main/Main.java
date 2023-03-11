@@ -106,7 +106,7 @@ public class Main {
             String[] optionArr = input.split(" ");
             if (input.equals("display schema;")) {
                 Catalog catalog = pageBuffer.getCatalog();
-                pageBuffer.getCatalog().displaySchema(args[0], page_size, buffer_size, catalog);
+                pageBuffer.displaySchema(args[0], page_size, buffer_size, catalog);
 
             } else if (optionArr[0].equals("display") && optionArr[1].equals("info") && optionArr.length == 3) {
                 if (optionArr[2].charAt(optionArr[2].length() - 1) == ';') {
@@ -114,12 +114,13 @@ public class Main {
                 }
                 Table table = pageBuffer.getStorageManager().getTableByName(optionArr[2]);
                 if (table != null) {
-                    pageBuffer.getCatalog().displayInfoTable(table);
+                    pageBuffer.displayInfoTable(table);
                     System.out.println("SUCCESS");
                 }
 
             } else if (optionArr[0].equals("create") && optionArr[1].equals("table") && optionArr.length > 3) {
-                if (pageBuffer.getStorageManager().createTable(input) != null) {
+                Table table = pageBuffer.getStorageManager().createTable(input);
+                if (table != null) {
                     System.out.println("\nSUCCESS");
                 }
 
@@ -136,7 +137,12 @@ public class Main {
                 break;
 
             } else if (optionArr[0].equals("insert") && optionArr[1].equals("into") && optionArr[3].equals("values") && optionArr.length >= 5) {
-                pageBuffer.insertRecordToTable(input, optionArr[2]);
+                Table table = pageBuffer.getStorageManager().getTableByName(optionArr[2]);
+                if (table != null) {
+                    if (pageBuffer.insertRecordsToTable(input, table)) {
+                        System.out.println("\nSUCCESS");
+                    }
+                }
 
             } else if (optionArr[0].equals("select") && optionArr[1].equals("*") && optionArr[2].equals("from") && optionArr.length == 4) {
                 if (optionArr[3].charAt(optionArr[3].length() - 1) == ';') {
@@ -147,7 +153,6 @@ public class Main {
                     pageBuffer.selectStarFromTable(table);
                     System.out.println("\nSUCCESS");
                 }
-
 
             } else if (optionArr[0].equals("get") && optionArr[1].equals("page") && optionArr[3].equals("in") &&
                     optionArr[4].equals("table") && optionArr.length == 6) {

@@ -76,41 +76,6 @@ public class Catalog {
 
 
     /**
-     * Method displays the display schema
-     * @param location location of database
-     * @param pageSize size of page (byte)
-     * @param bufferSize    size of buffer (number of pages)
-     * @param catalog catalog needs to be displayed
-     */
-    public void displaySchema(String location, int pageSize, int bufferSize, Catalog catalog) {
-        System.out.println("DB location: " + location);
-        System.out.println("Page Size: " + pageSize);
-        System.out.println("Buffer Size: " + bufferSize);
-        System.out.println("Tables: \n");
-
-        if (catalog.getTablesList().size() != 0) {
-            for (Table table : catalog.getTablesList()) {
-                System.out.println(tableToString(table));
-            }
-            System.out.println("SUCCESS");
-        } else {
-            System.out.println("No tables to display");
-            System.out.println("SUCCESS");
-        }
-    }
-
-
-    /**
-     * Method prints the table out
-     * @param table table need to be printed out
-     */
-    public void displayInfoTable(Table table) {
-        String str = tableToString(table);
-        System.out.println(str);
-    }
-
-
-    /**
      * Method returns the arraylist of tables from catalog
      * @return arraylist of tables
      */
@@ -123,62 +88,6 @@ public class Catalog {
         } else {
             return new ArrayList<>();
         }
-    }
-
-
-    //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6} AttributeType
-    //  enum: {primary 0 1}
-
-    /**
-     * Method returns the string of a table
-     * @param table table
-     * @return string of table
-     */
-    public static String tableToString(Table table) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("Table Name: ");
-        stringBuilder.append(table.getTableName()).append("\n");
-        stringBuilder.append("Table schema: \n");
-        ArrayList<String> attriNameList = table.getAttriName_list();
-        ArrayList<String> attriTypeList = table.getAttriType_list();
-        String primarykeyName = table.getPrimaryKeyName();
-        for (int i = 0; i < attriNameList.size(); i++) {
-            stringBuilder.append("\t");
-            stringBuilder.append(attriNameList.get(i));
-            stringBuilder.append(":");
-            char attriType = attriTypeList.get(i).charAt(0);
-            if (attriType == '2') {
-                stringBuilder.append("boolean");
-            } else if (attriType == '3') {
-                stringBuilder.append("integer");
-            } else if (attriType == '4') {
-                stringBuilder.append("double");
-            } else if (attriType == '5') {
-                stringBuilder.append("char(");
-                String temp = attriTypeList.get(i).substring(1);
-                stringBuilder.append(temp);
-                stringBuilder.append(")");
-            } else if (attriType == '6') {
-                stringBuilder.append("varchar(");
-                String temp = attriTypeList.get(i).substring(1);
-                stringBuilder.append(temp);
-                stringBuilder.append(")");
-            } else {
-                System.out.println("Something goes wrong while converting table to string!");
-                System.err.println("ERROR");
-                return null;
-            }
-            if (primarykeyName.equals(attriNameList.get(i))) {
-                stringBuilder.append(" primarykey ");
-            }
-            stringBuilder.append("\n");
-        }
-        stringBuilder.append("Pages: ");
-        stringBuilder.append(table.getPageID_list().size()).append("\n");
-        stringBuilder.append("Records: ");
-        stringBuilder.append(table.getRecordNumUpdate()).append("\n");
-
-        return stringBuilder.toString();
     }
 
 
@@ -218,7 +127,7 @@ public class Catalog {
         ByteBuffer result = ByteBuffer.wrap(tableArr);
         // get 4 bytes of tableName size
         int tableNameSize = result.getInt(0);
-        byte[] tableNameArr = Arrays.copyOfRange(tableArr, 4, tableNameSize + 4);
+        byte[] tableNameArr = Arrays.copyOfRange(tableArr, Integer.BYTES, tableNameSize + Integer.BYTES);
 
         //Variables need for create a table
         String tableName = new String(tableNameArr, StandardCharsets.UTF_8);
@@ -228,16 +137,16 @@ public class Catalog {
         ArrayList<Integer> pageIDList = new ArrayList<>();
 
         // get next 4 bytes for the number of attributes
-        byte[] numberAttributes = Arrays.copyOfRange(tableArr, 4 + tableNameSize, 4 + tableNameSize + 4);
+        byte[] numberAttributes = Arrays.copyOfRange(tableArr, Integer.BYTES + tableNameSize, Integer.BYTES + tableNameSize + Integer.BYTES);
         int attributeNum = ByteBuffer.wrap(numberAttributes).getInt();
-        int indexTracking = 4 + tableNameSize + 4;
+        int indexTracking = Integer.BYTES + tableNameSize + Integer.BYTES;
 
         // get all the attributes
         for (int i = 0; i < attributeNum; i++) {
             // get next 4 bytes for the attribute name size
-            byte[] attriNameSizeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + 4);
+            byte[] attriNameSizeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + Integer.BYTES);
             int attriNameSize = ByteBuffer.wrap(attriNameSizeArr).getInt();
-            indexTracking = indexTracking + 4;
+            indexTracking = indexTracking + Integer.BYTES;
 
             // get the next attriNameSize for the name of attribute and add to the attribute name list
             byte[] attriNameArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + attriNameSize);
@@ -249,23 +158,23 @@ public class Catalog {
             StringBuilder attriTypeStrBuilder = new StringBuilder();
             // get next 4 bytes for attribute type. It will follow the hard set up:
             //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6}
-            byte[] attriTypeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + 4);
+            byte[] attriTypeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + Integer.BYTES);
             int attriType = ByteBuffer.wrap(attriTypeArr).getInt();
-            indexTracking = indexTracking + 4;
+            indexTracking = indexTracking + Integer.BYTES;
             attriTypeStrBuilder.append(attriType);
 
             // get next 4 bytes for attribute type size.
             // by setup, 0 if integer, boolean, or double, and the size for varchar and char
-            byte[] attriTypeSizeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + 4);
+            byte[] attriTypeSizeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + Integer.BYTES);
             int attriTypeSize = ByteBuffer.wrap(attriTypeSizeArr).getInt();
-            indexTracking = indexTracking + 4;
+            indexTracking = indexTracking + Integer.BYTES;
             attriTypeStrBuilder.append(attriTypeSize);
 
             // get next 4 bytes for primary key by hard setup:
             //  enum: {primary 0 1}
-            byte[] primarykey = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + 4);
+            byte[] primarykey = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + Integer.BYTES);
             int primaryNum = ByteBuffer.wrap(primarykey).getInt();
-            indexTracking = indexTracking + 4;
+            indexTracking = indexTracking + Integer.BYTES;
             if (primaryNum == 1) {
                 primarykeyName = attriNameList.get(attriNameList.size() - 1);
             }
@@ -275,15 +184,21 @@ public class Catalog {
 
         }
 
-        byte[] pageNumArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + 4);
+        byte[] pageNumArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + Integer.BYTES);
         int numPage = ByteBuffer.wrap(pageNumArr).getInt();
-        indexTracking = indexTracking + 4;
+        indexTracking = indexTracking + Integer.BYTES;
         for (int i = 0; i < numPage; i++) {
-            byte[] pageIDArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + 4);
+            byte[] pageIDArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + Integer.BYTES);
             int pageID = ByteBuffer.wrap(pageIDArr).getInt();
-            indexTracking = indexTracking + 4;
+            indexTracking = indexTracking + Integer.BYTES;
             pageIDList.add(pageID);
         }
+
+//        byte[] numRecArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + Integer.BYTES);
+//        int numRec = ByteBuffer.wrap(numRecArr).getInt();
+//        indexTracking = indexTracking + Integer.BYTES;
+//
+
 
         if (attriNameList.size() != attriTypeList.size()) {
             System.err.println("Something goes wrong. Can't read the catalog file.");
@@ -361,19 +276,19 @@ public class Catalog {
         ByteBuffer result = ByteBuffer.allocate(0);
         // encoding the tableName
         int tableNameSize = table.getTableName().length();
-        byte[] tempNameSize = ByteBuffer.allocate(4).putInt(tableNameSize).array();
+        byte[] tempNameSize = ByteBuffer.allocate(Integer.BYTES).putInt(tableNameSize).array();
         byte[] tableNameArr = table.getTableName().getBytes(StandardCharsets.UTF_8);
         result = appendByteBuffer(result, tempNameSize);
         result = appendByteBuffer(result, tableNameArr);
         // encoding the number of attributes
         int numberAttriName = table.getAttriName_list().size();
-        byte[] numAttriName = ByteBuffer.allocate(4).putInt(numberAttriName).array();
+        byte[] numAttriName = ByteBuffer.allocate(Integer.BYTES).putInt(numberAttriName).array();
         result = appendByteBuffer(result, numAttriName);
         // encoding each of attributes: attributeName and attributesType
         for (int i = 0; i < numberAttriName; i++) {
             // attributeName
             int attriNameSize = table.getAttriName_list().get(i).length();
-            byte[] attriNameSizeArr = ByteBuffer.allocate(4).putInt(attriNameSize).array();
+            byte[] attriNameSizeArr = ByteBuffer.allocate(Integer.BYTES).putInt(attriNameSize).array();
             byte[] attriNameArr = table.getAttriName_list().get(i).getBytes(StandardCharsets.UTF_8);
             result = appendByteBuffer(result, attriNameSizeArr);
             result = appendByteBuffer(result, attriNameArr);
@@ -381,7 +296,7 @@ public class Catalog {
             // attributeType
             char firstChar = table.getAttrType(i).charAt(0);
             int attriType = Integer.parseInt(String.valueOf(firstChar));
-            byte[] attriTypeArr = ByteBuffer.allocate(4).putInt(attriType).array();
+            byte[] attriTypeArr = ByteBuffer.allocate(Integer.BYTES).putInt(attriType).array();
             result = appendByteBuffer(result, attriTypeArr);
 
             int tempForTypeSize = 0;
@@ -397,30 +312,34 @@ public class Catalog {
                     return null;
                 }
             }
-            byte[] attriTypeSizeArr = ByteBuffer.allocate(4).putInt(tempForTypeSize).array();
+            byte[] attriTypeSizeArr = ByteBuffer.allocate(Integer.BYTES).putInt(tempForTypeSize).array();
             result = appendByteBuffer(result, attriTypeSizeArr);
 
             int primary = 0;
             if (table.getPrimaryKeyName().equals(table.getAttriName_list().get(i))) {
                 primary = 1;
             }
-            byte[] primarkeyArr = ByteBuffer.allocate(4).putInt(primary).array();
+            byte[] primarkeyArr = ByteBuffer.allocate(Integer.BYTES).putInt(primary).array();
             result = appendByteBuffer(result, primarkeyArr);
         }
 
         ArrayList<Integer> pageIDList = table.getPageID_list();
         int numPage = pageIDList.size();
-        byte[] numPageArr = ByteBuffer.allocate(4).putInt(numPage).array();
+        byte[] numPageArr = ByteBuffer.allocate(Integer.BYTES).putInt(numPage).array();
         result = appendByteBuffer(result, numPageArr);
 
-        for (Integer integer : pageIDList) {
-            byte[] temp = ByteBuffer.allocate(4).putInt(integer).array();
+        for (Integer pageID : pageIDList) {
+            byte[] temp = ByteBuffer.allocate(Integer.BYTES).putInt(pageID).array();
             result = appendByteBuffer(result, temp);
         }
 
+//        //get numrecords
+//        byte[] numRecArr = ByteBuffer.allocate(Integer.BYTES).putInt(numRec).array();
+//        result = appendByteBuffer(result, numRecArr);
+
         // get the total size of table
         int resultSize = result.array().length;
-        ByteBuffer temp = ByteBuffer.allocate(4).putInt(resultSize);
+        ByteBuffer temp = ByteBuffer.allocate(Integer.BYTES).putInt(resultSize);
         result = appendByteBuffer(temp, result.array());
 
         return result.array();
@@ -442,6 +361,11 @@ public class Catalog {
     }
 
 
+    /**
+     * Mehtod gets table by name
+     * @param tableName tablename
+     * @return a table
+     */
     public Table getTableByName(String tableName){
         for(Table t: tables_list){
             if(t.getTableName().equals(tableName)){

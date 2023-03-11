@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * CSCI420 Project - Phase 1
@@ -24,15 +26,19 @@ public class PageBuffer {
     private ArrayList<Page> pagelistBuffer = new ArrayList<>();
     private int bufferSize;
     private StorageManager storageManager;
-
+    private ArrayList<Integer> pageIDListOfCatalog = new ArrayList<>(); //keep track of pageID, for unique
 
     public PageBuffer(String db_loc, int bufferSize, int page_size) {
         this.db_loc = db_loc;
         this.bufferSize = bufferSize;
         this.page_size = page_size;
         this.storageManager = new StorageManager(db_loc, this.page_size, bufferSize);
+        this.pageIDListOfCatalog = getPageIDOfWholeCatalog();
     }
 
+    public ArrayList<Integer> getPageIDListOfCatalog(){
+        return this.pageIDListOfCatalog;
+    }
 
     /**
      * Method get the page list in buffer
@@ -51,6 +57,39 @@ public class PageBuffer {
      */
     public Catalog getCatalog() {
         return storageManager.getCatalog();
+    }
+
+    /**
+     * Method displays the display schema
+     * @param location location of database
+     * @param pageSize size of page (byte)
+     * @param bufferSize    size of buffer (number of pages)
+     * @param catalog catalog needs to be displayed
+     */
+    public void displaySchema(String location, int pageSize, int bufferSize, Catalog catalog) {
+        System.out.println("DB location: " + location);
+        System.out.println("Page Size: " + pageSize);
+        System.out.println("Buffer Size: " + bufferSize);
+        System.out.println("Tables: \n");
+
+        if (catalog.getTablesList().size() != 0) {
+            for (Table table : catalog.getTablesList()) {
+                System.out.println(tableToString(table));
+            }
+            System.out.println("SUCCESS");
+        } else {
+            System.out.println("No tables to display");
+            System.out.println("SUCCESS");
+        }
+    }
+
+    /**
+     * Method prints the table out
+     * @param table table need to be printed out
+     */
+    public void displayInfoTable(Table table) {
+        String str = tableToString(table);
+        System.out.println(str);
     }
 
     /**
@@ -75,9 +114,34 @@ public class PageBuffer {
                 byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite, this.page_size);
 
                 String path = this.db_loc + "/Tables/" + tableName + ".txt";
-                PageBuffer.writeToDiskWithRandomAccess(path, pageToWrite, 0, this.page_size, numPageInTable);
-                this.storageManager.writeByteArrToDisk(path, byteArr);
+                ArrayList<Integer> pageIDListFromDisk = getPageIDListFromDiskWithRA(table);
+                File file = new File(path);
+                if (file.exists()) {
+                    //check if this is a new page or not
+                    if (pageIDListFromDisk.contains(pageToWrite.getPageID())) {
+                        int indexPage = pageIDListFromDisk.indexOf(pageToWrite.getPageID());
+                        int offset = indexPage * page_size;
+                        writeToDiskWithRandomAccess(path, pageToWrite,offset , this.page_size, numPageInTable);
+                    } else {
+                        int offset = table.getPageID_list().size() * page_size;
+                        writeToDiskWithRandomAccess(path, pageToWrite, offset, this.page_size, numPageInTable);
+                    }
+                } else {
+                    try {
+                        file.createNewFile();
+                        writeToDiskWithRandomAccess(path, pageToWrite, 0, this.page_size, numPageInTable);
+                    } catch (IOException e) {
+                        System.err.println("Fails to write page to new table file.");
+                        e.printStackTrace();
+                        System.err.println("ERROR");
+                        return false;
+                    }
+
+                }
+
+                //this.storageManager.writeByteArrToDisk(path, byteArr);
             }
+
         } else {
             System.err.println("Fails to write catalog to file!");
             System.err.println("ERROR");
@@ -95,18 +159,13 @@ public class PageBuffer {
      * @param offset   offset to write in disk
      * @param pageSize page size
      */
-    public static void writeToDiskWithRandomAccess(String path, Page page, int offset, int pageSize, int numPageInTable) {
+    public void writeToDiskWithRandomAccess(String path, Page page, int offset, int pageSize, int numPageInTable) {
         File file = new File(path);
 
         try {
             RandomAccessFile randomAccessFile = new RandomAccessFile(file.getPath(), "rw");
-            byte[] numPageInTableByte = ByteBuffer.allocate(Integer.BYTES).putInt(numPageInTable).array();
             byte[] data = page.convertPageToByteArr(page, pageSize);
-            randomAccessFile.seek(0);
-            // write in the number of pages in the first 4 bytes
-            randomAccessFile.write(numPageInTableByte);
             randomAccessFile.seek(offset);
-            // write in whatever page bytearray to its designated index
             randomAccessFile.write(data);
             randomAccessFile.close();
         } catch (IOException i) {
@@ -120,12 +179,13 @@ public class PageBuffer {
     /**
      * Read certain number of bytes at a given offset from the disk. And deserialize it into a page
      *
-     * @param path     path to file
+     * @param tableName     path to file
      * @param offset   offset of where page exists in hardware
      * @param pageSize page size that was allocated to it.
      * @return a page
      */
-    public static Page readFromDiskWithRandomAccess(String path, int offset, int pageSize) {
+    public Page readFromDiskWithRandomAccess(int pageID, String tableName, int offset, int pageSize) {
+        String path = this.db_loc + "/Tables/" + tableName + ".txt";
         File file = new File(path);
         if (file.exists()) {
             try {
@@ -133,208 +193,256 @@ public class PageBuffer {
                 randomAccessFile.seek(offset);
                 byte[] pageByteArray = new byte[pageSize];
                 randomAccessFile.readFully(pageByteArray);
-                Page page = Page.convertByteArrToPage(pageByteArray);
+                Page tempPage = new Page(pageID, tableName, this.db_loc);
+                Page page = tempPage.convertByteArrToPage(pageByteArray, pageID, tableName);
                 return page;
             } catch (IOException e) {
-                System.err.println("An error occurred while writing to the file.");
+                System.err.println("An error occurred while reading from the file.");
                 e.printStackTrace();
                 System.err.println("ERROR");
             }
         } else {
-            System.err.println("Table not exist");
+            System.err.println("Table file does not exist!");
             return null;
         }
         return null;
     }
 
+    public ArrayList<Integer> getPageIDListFromDiskWithRA(Table table) {
+        ArrayList<Integer> pageIDList = new ArrayList<>();
+        String path = this.db_loc + "/Tables/" + table.getTableName() + ".txt";
+        File file = new File(path);
+        if (file.exists()) {
+            try {
+                RandomAccessFile randomAccessFile = new RandomAccessFile(file.getPath(), "rw");
+                int offset = 0;
+                for (int i = 0; i < table.getPageID_list().size(); i++) {
+                    randomAccessFile.seek(offset);
+                    byte[] pageIDArr = new byte[Integer.BYTES];
+                    randomAccessFile.readFully(pageIDArr);
+                    int pageID = ByteBuffer.wrap(pageIDArr).getInt();
+                    pageIDList.add(pageID);
+                    offset = offset + this.page_size;
+                }
+            } catch (IOException e) {
+                System.err.println("An error occurred while reading from the file.");
+                e.printStackTrace();
+                System.err.println("ERROR");
+                return null;
+            }
+        }
+        return pageIDList;
+    }
 
-    /**
-     * Method inserts the record to table
-     *
-     * @param inp       input SQL
-     * @param tablename table name
-     * @return true if successfully otherwise false
-     */
-    public boolean insertRecordToTable(String inp, String tablename) {
-        if (this.storageManager.getCatalog().getTablesList() != null) {
-            Table table = this.storageManager.getTableByName(tablename);
-            if (table != null) {
-                int indexOfPrimaryKey = getIndexOfColumn(table.getPrimaryKeyName(), table);
-                int startIndex = inp.indexOf("(");
-                inp = inp.substring(startIndex, inp.length() - 1);
-                ArrayList<Record> recordArrayList = returnListofStringArrRecord(inp, table);
-                //ArrayList<Main.Record> recordArrayList = convertStringToRecordList(stringArrRecordList, table);
-                if (recordArrayList != null) {
-                    for (Record record : recordArrayList) {
-                        boolean insertAlready = false;
-                        if (table.getPageID_list().size() == 0) {
-                            removeLRUFromBufferIfOverflow(getCatalog());
-                            Page page = new Page(getPageIDList().size() + 1, table.getTableName(), this.db_loc);
-                            page.getRecordList().add(record);
-                            page.incCurrentPageSize(record, record.convertRecordToByteArr(record));
-                            table.getPageID_list().add(getPageIDList().size() + 1);
-                            table.increaseNumRecordBy1();
+    public ArrayList<Record> returnListofStringArrRecord(String insertSQL, Table table) {
+        ArrayList<String[]> insertSQLAfterSplit = splitInsertCommandInput(insertSQL, table);
+        ArrayList<Record> recordInsertList = new ArrayList<>();
+        for (String[] value : insertSQLAfterSplit) {
+            Record record = validateDataType(value, table.getAttriType_list());
+            if (record == null) {
+                recordInsertList.add(null);
+            }
+            else {
+                recordInsertList.add(record);
+            }
+        }
+        return recordInsertList;
+    }
 
-                            // change split
-                            if (record.convertRecordToByteArr(record).length > this.page_size) {
-                                System.out.println("page size" + this.page_size);
-                                System.err.println("This record is bigger than page size");
-                                return false;
-                            }
 
-                            //check if the page is in the buffer
-                            // if not then add to pagelist buffer
-                            if (!this.pagelistBuffer.contains(page)) {
-                                this.pagelistBuffer.add(page);
-                                removeLRUFromBufferIfOverflow(getCatalog());
-                                //else then remove that page and add back to the last (this is the most recently use)
-                            } else {
-                                int indexPage = this.pagelistBuffer.indexOf(page);
-                                if (indexPage != -1) {
-                                    this.pagelistBuffer.remove(indexPage);
-                                    this.pagelistBuffer.add(page);
-                                    removeLRUFromBufferIfOverflow(getCatalog());
-                                }
-
-                            }
-                            insertAlready = true;
-                        } else {
-                            ArrayList<Integer> originalPageIDList = new ArrayList<>(table.getPageID_list());
-
-                            for (int m = 0; m < originalPageIDList.size(); m++) {
-
-                                Page page = new Page(originalPageIDList.get(m), table.getTableName(), this.db_loc);
-                                if (!this.pagelistBuffer.contains(page)) {
-                                    this.pagelistBuffer.add(page);
-                                    removeLRUFromBufferIfOverflow(getCatalog());
-                                } else {
-                                    for (Page tempPage : this.pagelistBuffer) {
-                                        if (tempPage.equals(page)) {
-                                            page = tempPage;
-                                            break;
-                                        }
-                                    }
-                                    int indexPage = this.pagelistBuffer.indexOf(page);
-                                    if (indexPage != -1) {
-                                        this.pagelistBuffer.remove(indexPage);
-                                        this.pagelistBuffer.add(page);
-                                        removeLRUFromBufferIfOverflow(getCatalog());
-                                    }
-                                }
-
-                                for (int i = 0; i < page.getRecordList().size(); i++) {
-                                    Record tempRecord = page.getRecordList().get(i);
-                                    Object recordPrimaryValue = record.getValuesList().get(indexOfPrimaryKey);
-                                    Object tempRecordPrimaryValue = tempRecord.getValuesList().get(indexOfPrimaryKey);
-                                    int compare = compare2Records(recordPrimaryValue, tempRecordPrimaryValue);
-                                    if (compare == 0) {
-                                        System.err.println("Can't have duplicated primary key: " + printRecord(record));
-                                        System.err.println("ERROR");
-                                        return false;
-                                    }
-
-                                    // if primary key of new record does not duplicate
-                                    // split page
-                                    if (compare < 0) {
-                                        System.out.println(this.page_size);
-                                        page.getRecordList().add(i, record);
-                                        page.incCurrentPageSize(record, record.convertRecordToByteArr(record));
-                                        table.increaseNumRecordBy1();
-                                        int currentPagesize = page.getCurrent_page_size();
-                                        //check if page overflows
-                                        if (currentPagesize > this.page_size) {
-                                            int midpoint = page.getRecordList().size() / 2;
-                                            ArrayList<Record> halfRecord = new ArrayList<>();
-                                            // haldRecord stores the second half of the page when it overflows
-                                            for (int j = midpoint; j < page.getRecordList().size(); j++) {
-                                                halfRecord.add(page.getRecordList().get(j));
-                                            }
-
-                                            page.getRecordList().subList(midpoint, page.getRecordList().size()).clear();
-                                            Page newPage = new Page(getPageIDList().size() + 1, table.getTableName(), this.db_loc);
-                                            newPage.getRecordList().addAll(halfRecord);
-
-                                            //decrement page 1 size after splitting
-                                            //increment those into page 2
-                                            for (Record rec : halfRecord) {
-                                                page.decCurrentPageSize(rec, record.convertRecordToByteArr(rec));
-                                                newPage.incCurrentPageSize(rec, record.convertRecordToByteArr(rec));
-                                            }
-
-                                            //add new page into buffer
-                                            this.pagelistBuffer.add(newPage);
-                                            //check if buffer full
-                                            removeLRUFromBufferIfOverflow(getCatalog());
-                                            ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
-                                            //add the new page into the table in catalog
-                                            for (Table tbl : tableListInCatalog) {
-                                                if (tbl.getTableName().equals(table.getTableName())) {
-                                                    tbl.getPageID_list().add(m + 1, newPage.getPageID());
-                                                }
-                                            }
-                                        }
-                                        insertAlready = true;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        if (!insertAlready) {
-                            ArrayList<Integer> pageIDList = table.getPageID_list();
-                            Page lastPage = new Page(pageIDList.get(pageIDList.size() - 1), table.getTableName(), this.db_loc);
-                            for (Page tempPage : this.pagelistBuffer) {
-                                if (tempPage.equals(lastPage)) {
-                                    lastPage = tempPage;
-                                    break;
-                                }
-                            }
-                            lastPage.getRecordList().add(record);
-                            lastPage.incCurrentPageSize(record, record.convertRecordToByteArr(record));
-                            table.increaseNumRecordBy1();
-                            int currentPagesize = lastPage.getCurrent_page_size();
-                            if (currentPagesize > this.page_size) {
-                                int midpoint = lastPage.getRecordList().size() / 2;
-                                ArrayList<Record> halfRecord = new ArrayList<>();
-                                for (int j = midpoint; j < lastPage.getRecordList().size(); j++) {
-                                    halfRecord.add(lastPage.getRecordList().get(j));
-                                }
-                                lastPage.getRecordList().subList(midpoint, lastPage.getRecordList().size()).clear();
-                                Page newPage = new Page(getPageIDList().size() + 1, table.getTableName(), this.db_loc);
-                                newPage.getRecordList().addAll(halfRecord);
-                                for (Record rec : halfRecord) {
-                                    lastPage.decCurrentPageSize(rec, record.convertRecordToByteArr(rec));
-                                    newPage.incCurrentPageSize(rec, record.convertRecordToByteArr(rec));
-                                }
-
-                                this.pagelistBuffer.add(newPage);
-                                removeLRUFromBufferIfOverflow(getCatalog());
-                                ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
-                                for (Table tbl : tableListInCatalog) {
-                                    if (tbl.getTableName().equals(table.getTableName())) {
-                                        tbl.getPageID_list().add(newPage.getPageID());
-                                        break;
-                                        //tbl.getPageID_list().add(tableListInCatalog.size() + 1, newPage.getPageID());
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if (inp.split(",").length == recordArrayList.size()) {
-                        System.out.println("All record inserted.");
-                        return true;
-                    } else if (recordArrayList.size() > 0) {
-                        System.out.println("The first " + recordArrayList.size() + " record has been inserted.");
-                        return false;
+    public boolean insertRecordsToTable(String insertSQL, Table table) {
+        ArrayList<Record> recordList = returnListofStringArrRecord(insertSQL, table);
+        if(recordList!= null) {
+            int count = 0;
+            for (Record record : recordList) {
+                if (record != null) {
+                    if (insertARecordToTable(record, table)) {
+                        count++;
                     } else {
-                        return false;
+                        break;
                     }
-
                 }
             }
-            return false;
+            if (count == recordList.size()){
+                return true;
+            }
         }
         return false;
+    }
+
+
+    public boolean insertARecordToTable(Record record, Table table) {
+        ArrayList<Integer> pageIDList = table.getPageID_list();
+        if (pageIDList.size() == 0) {
+            TableFile tableFile = new TableFile(table, this.page_size, this.db_loc);
+            ArrayList<Record> recordArrayList = new ArrayList<>();
+            recordArrayList.add(record);
+            int pageID = findMaxinumNumInList(pageIDListOfCatalog) + 1;
+            String tableName = table.getTableName();
+            Page page = new Page(pageID, tableName, recordArrayList);
+            page.incCurrentPageSize(record, record.convertRecordToByteArr(record));
+            table.increaseNumRecordBy1();
+            tableFile.getPageList().add(page);
+            getCatalog().getTableByName(tableName).getPageID_list().add(pageID);
+            removeLRUFromBufferIfOverflow(this.getCatalog());
+            this.pagelistBuffer.add(page);
+            return true;
+        } else {
+            ArrayList<Integer> pageIDListFromTableFile = getPageIDListFromDiskWithRA(table);
+            ArrayList<Integer> pageIDListFromCatalogTable = table.getPageID_list();
+            for (int i = 0; i < pageIDListFromCatalogTable.size(); i++) {
+                int pageID = pageIDListFromCatalogTable.get(i);
+                Page page = new Page(pageID);
+                boolean flag = false;
+                for (Page tempPage : this.pagelistBuffer) {
+                    if (tempPage.getPageID() == page.getPageID()) {
+                        page = tempPage;
+                        flag = true;
+                        break;
+                    }
+                }
+                if (!flag) {
+                    int indexPage = pageIDListFromTableFile.indexOf(pageID);
+                    int offset = indexPage * this.page_size;
+                    page = readFromDiskWithRandomAccess(pageID, table.getTableName(), offset, this.page_size);
+                }
+                boolean containPage = false;
+                for(Page tempPage : this.pagelistBuffer) {
+                    if (tempPage.getPageID() == pageID) {
+                        containPage = true;
+                        break;
+                    }
+                }
+                if (!containPage) {
+                    this.pagelistBuffer.add(page);
+                }
+                removeLRUFromBufferIfOverflow(this.getCatalog());
+                for (int j = 0; j < page.getRecordList().size(); j++) {
+                    Record tempRecord = page.getRecordList().get(j);
+                    int indexOfPrimaryKey = getIndexOfColumn(table.getPrimaryKeyName(), table);
+                    Object recordPrimaryValue = record.getValuesList().get(indexOfPrimaryKey);
+                    Object tempRecordPrimaryValue = tempRecord.getValuesList().get(indexOfPrimaryKey);
+                    int compare = compare2Records(recordPrimaryValue, tempRecordPrimaryValue);
+                    if (compare == 0) {
+                        System.err.println("Can't have duplicated primary key: " + printRecord(record));
+                        System.err.println("ERROR");
+                        return false;
+                    } else if (compare < 0) {
+                        page.getRecordList().add(i, record);
+                        page.incCurrentPageSize(record, record.convertRecordToByteArr(record));
+                        table.increaseNumRecordBy1();
+                        int currentPagesize = page.getCurrent_page_size();
+                        //check if page overflows
+                        if (currentPagesize > this.page_size) {
+                            int midpoint = page.getRecordList().size() / 2;
+                            ArrayList<Record> halfRecord = new ArrayList<>();
+                            // haldRecord stores the second half of the page when it overflows
+                            for (int k = midpoint; k < page.getRecordList().size(); k++) {
+                                halfRecord.add(page.getRecordList().get(k));
+                            }
+
+                            page.getRecordList().subList(midpoint, page.getRecordList().size()).clear();
+                            int newPageID = findMaxinumNumInList(pageIDListOfCatalog)+1;
+                            Page newPage = new Page(newPageID, table.getTableName(), this.db_loc);
+                            newPage.getRecordList().addAll(halfRecord);
+
+                            //decrement page 1 size after splitting
+                            //increment those into page 2
+                            for (Record rec : halfRecord) {
+                                page.decCurrentPageSize(rec, record.convertRecordToByteArr(rec));
+                                newPage.incCurrentPageSize(rec, record.convertRecordToByteArr(rec));
+                            }
+
+                            //add new page into buffer
+                            this.pagelistBuffer.add(newPage);
+                            //check if buffer full
+                            removeLRUFromBufferIfOverflow(getCatalog());
+                            ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
+                            //add the new page into the table in catalog
+                            for (Table tbl : tableListInCatalog) {
+                                if (tbl.getTableName().equals(table.getTableName())) {
+                                    tbl.getPageID_list().add(i + 1, newPage.getPageID());
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            //
+            int pageIDLastPage = pageIDListFromCatalogTable.get(pageIDListFromCatalogTable.size()-1);
+            Page lastPage = new Page(pageIDLastPage);
+            boolean flag = false;
+            for (Page tempPage : pagelistBuffer) {
+                if (tempPage.getPageID() == lastPage.getPageID()) {
+                    lastPage = tempPage;
+                    flag = true;
+                    break;
+                }
+            }
+            if (!flag) {
+                int indexLastPage = pageIDListFromTableFile.indexOf(pageIDLastPage);
+                int offsetLastPage = indexLastPage * this.page_size;
+                lastPage = readFromDiskWithRandomAccess(pageIDLastPage, table.getTableName(), offsetLastPage, this.page_size);
+            }
+
+            lastPage.getRecordList().add(record);
+            lastPage.incCurrentPageSize(record, record.convertRecordToByteArr(record));
+            table.increaseNumRecordBy1();
+
+            boolean containPage = false;
+            for(Page tempPage : this.pagelistBuffer) {
+                if (tempPage.getPageID() == pageIDLastPage) {
+                    containPage = true;
+                    break;
+                }
+            }
+            if (!containPage) {
+                this.pagelistBuffer.add(lastPage);
+            }
+            //check if buffer full
+            removeLRUFromBufferIfOverflow(getCatalog());
+            int currentPagesize = lastPage.getCurrent_page_size();
+            if (currentPagesize > this.page_size) {
+                int midpoint = lastPage.getRecordList().size() / 2;
+                ArrayList<Record> halfRecord = new ArrayList<>();
+                for (int j = midpoint; j < lastPage.getRecordList().size(); j++) {
+                    halfRecord.add(lastPage.getRecordList().get(j));
+                }
+                lastPage.getRecordList().subList(midpoint, lastPage.getRecordList().size()).clear();
+                int newPageID = findMaxinumNumInList(pageIDListOfCatalog)+1;
+                Page newPage = new Page(newPageID, table.getTableName(), this.db_loc);
+                newPage.getRecordList().addAll(halfRecord);
+                for (Record rec : halfRecord) {
+                    lastPage.decCurrentPageSize(rec, record.convertRecordToByteArr(rec));
+                    newPage.incCurrentPageSize(rec, record.convertRecordToByteArr(rec));
+                }
+
+                this.pagelistBuffer.add(newPage);
+                removeLRUFromBufferIfOverflow(getCatalog());
+                ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
+                for (Table tbl : tableListInCatalog) {
+                    if (tbl.getTableName().equals(table.getTableName())) {
+                        tbl.getPageID_list().add(newPage.getPageID());
+                        return true;
+                    }
+                }
+            } else {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    public int findMaxinumNumInList(ArrayList<Integer> numList){
+        int max = Integer.MIN_VALUE;
+        for (int i = 0; i < numList.size(); i++) {
+            if (numList.get(i) > max) {
+                max = numList.get(i);
+            }
+        }
+        return max;
     }
 
 
@@ -351,10 +459,16 @@ public class PageBuffer {
             Table table = catalog.getTableByName(tableName);
             String path = this.db_loc + "/Tables/" + tableName + ".txt";
             int numPageInTable = table.getPageID_list().size();
-            int idxOfPage = table.getPageID_list().indexOf(pageToWrite.getPageID());
-            int offset = Integer.BYTES + (page_size * idxOfPage);
-            PageBuffer.writeToDiskWithRandomAccess(path, pageToWrite, offset, this.page_size, numPageInTable);
-            this.pagelistBuffer.remove(0);
+            if (table.getPageID_list().contains(pageToWrite.getPageID())) {
+                int idxOfPage = table.getPageID_list().indexOf(pageToWrite.getPageID());
+                int offset = page_size * idxOfPage;
+                writeToDiskWithRandomAccess(path, pageToWrite, offset, this.page_size, numPageInTable);
+                this.pagelistBuffer.remove(0);
+            } else {
+                int offset = page_size * table.getPageID_list().size();
+                writeToDiskWithRandomAccess(path, pageToWrite, offset, this.page_size, numPageInTable);
+                this.pagelistBuffer.remove(0);
+            }
         }
     }
 
@@ -371,137 +485,6 @@ public class PageBuffer {
             result.addAll(table.getPageID_list());
         }
         return result;
-    }
-
-
-    /**
-     * Method converts arraylist of record string to arraylist of records
-     *
-     * @param recordList arraylist of record string
-     * @param table      table that records belong to
-     * @return arraylist of records
-     */
-    public ArrayList<Record> convertStringToRecordList(ArrayList<String[]> recordList, Table table) {
-        ArrayList<Record> recordArrayList = new ArrayList<>();
-        ArrayList<String> attriNameList = table.getAttriName_list();
-
-        for (String[] stringarry : recordList) {
-            if (stringarry.length != attriNameList.size()) {
-                System.err.println("Number of attributes don't match. Expect " + attriNameList.size() + " attributes");
-                System.err.println("ERROR");
-                return null;
-            } else {
-                Record record = convertStringArrToRecord(stringarry, table);
-                if (record == null) {
-                    return recordArrayList;
-                }
-                recordArrayList.add(record);
-            }
-        }
-        return recordArrayList;
-    }
-
-
-    /**
-     * Method converts byte array of record to record object
-     *
-     * @param strArr byte array of record
-     * @param table  table
-     * @return record object
-     */
-    public Record convertStringArrToRecord(String[] strArr, Table table) {
-        ArrayList<Object> valuesList = new ArrayList<>();
-        String primaryKey = table.getPrimaryKeyName();
-        ArrayList<String> attriTypeList = table.getAttriType_list();
-
-        //check primaryKey if duplication and can't be null
-        int indexOfPrimaryKey = getIndexOfColumn(primaryKey, table);
-        for (int i = 0; i < strArr.length; i++) {
-            char attrType = attriTypeList.get(i).charAt(0);
-            if (i == indexOfPrimaryKey) {
-                String value = strArr[i];
-                if (value.equalsIgnoreCase("null")) {
-                    System.err.println("Primary key can't be null");
-                    System.err.println("ERROR");
-                    return null;
-                }
-            }
-            if (attrType == '2') {
-                if (isBoolean(strArr[i])) {
-                    Object valueObj = strArr[i].equalsIgnoreCase("true") ? Boolean.TRUE :
-                            strArr[i].equalsIgnoreCase("false") ? Boolean.FALSE : null;
-                    valuesList.add(valueObj);
-                } else {
-                    System.err.println("Expect " + strArr[i] + " is a boolean: true/false but got " + strArr[i]);
-                    System.err.println("ERROR");
-                    return null;
-                }
-            } else if (attrType == '3') {
-                if (isInteger(strArr[i])) {
-                    Object valueObj = Integer.valueOf(strArr[i]);
-                    valuesList.add(valueObj);
-                } else {
-                    System.err.println("Expect " + strArr[i] + " is a integer but got " + strArr[i]);
-                    System.err.println("ERROR");
-                    return null;
-                }
-            } else if (attrType == '4') {
-                if (isDouble(strArr[i])) {
-                    Object valueObj = Double.valueOf(strArr[i]);
-                    valuesList.add(valueObj);
-                } else {
-                    System.err.println("Expect " + strArr[i] + " is a double but got " + strArr[i]);
-                    System.err.println("ERROR");
-                    return null;
-                }
-            } else if (attrType == '5') {
-                if (!strArr[i].substring(0, 1).equals("\"") || !strArr[i].substring(strArr[i].length() - 1, strArr[i].length()).equals("\"")) {
-                    System.err.println("Expect quotations for string values");
-                    System.err.println("ERROR");
-                    return null;
-                }
-                strArr[i] = strArr[i].substring(1, strArr[i].length() - 1);
-
-                String sizeString = attriTypeList.get(i).substring(1);
-                if (isInteger(sizeString)) {
-                    int size = Integer.parseInt(sizeString);
-                    int inputSize = strArr[i].length();
-                    if (inputSize != size) {
-                        System.err.println("Expect " + strArr[i] + " has " + size + " chars but got " + inputSize + " chars");
-                        System.err.println("ERROR");
-                        return null;
-                    } else {
-                        valuesList.add(strArr[i]);
-                    }
-                }
-            } else if (attrType == '6') {
-                if (!strArr[i].substring(0, 1).equals("\"") || !strArr[i].substring(strArr[i].length() - 1, strArr[i].length()).equals("\"")) {
-                    System.err.println("Expect quotations for string values");
-                    System.err.println("ERROR");
-                    return null;
-                }
-                // take out the quote in the front and at the end.
-                strArr[i] = strArr[i].substring(1, strArr[i].length() - 1);
-
-                String sizeString = attriTypeList.get(i).substring(1);
-                if (isInteger(sizeString)) {
-                    int size = Integer.parseInt(sizeString);
-                    int inputSize = strArr[i].length();
-                    if (inputSize > size) {
-                        System.err.println("Expect " + strArr[i] + " has " + size + " chars but got " + inputSize + " chars");
-                        System.err.println("ERROR");
-                        return null;
-                    } else {
-                        valuesList.add(strArr[i]);
-                    }
-                }
-            } else {
-                System.err.println("Fail to parse the input to record");
-                System.err.println("ERROR");
-                return null;
-            }
-        }
-        return new Record(valuesList, new ArrayList<String>());
     }
 
 
@@ -523,40 +506,130 @@ public class PageBuffer {
     }
 
 
-    // "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
-    // FORMAT: insert into student values ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true),("(A)" 1 "school" 2 "(false")
-    // check: many tuples in 1 sql, check duplicate primary, check how many attributes, check the type of attribute,
-    // check the length in varchar and char, check null, check if table name is exist
+    public ArrayList<String[]> splitInsertCommandInput(String insertSQL, Table table) {
+        ArrayList<String[]> result = new ArrayList<>();
 
-    /**
-     * Method return the input record string to the list of string array
-     *
-     * @param inputTupesList record string input
-     * @return arraylist of array string (one string[] is the record string)
-     */
-    public ArrayList<Record> returnListofStringArrRecord(String inputTupesList, Table table) {
-        ArrayList<Record> recordList = new ArrayList<>();
-        String[] splitString = inputTupesList.split(",");
+        //get String after the word "values"
+        int indexOfValues = insertSQL.indexOf("values");
+        insertSQL = insertSQL.substring(indexOfValues+7, insertSQL.length());
 
-        for (String str : splitString) {
-            if (!str.substring(0, 1).equals("(") || !str.substring(str.length() - 1, str.length()).equals(")")) {
-                return null;
-            }
-            String tupleAfterRemoveParenthesis = removeFirstAndLastChar(str);
-            String[] tupleSplitBySpace = tupleAfterRemoveParenthesis.split(" ");
-            if (tupleSplitBySpace.length != table.getAttriName_list().size()) {
-                // number of attributes don't match
-                return null;
-            }
+        //remove the ; at the end
+        insertSQL = insertSQL.substring(0, insertSQL.length()-1);
 
-            Record r = convertStringArrToRecord(tupleSplitBySpace, table);
-            if (r != null) {
-                recordList.add(r);
-            }
+        //split the string by ',' but not ',' in the quote
+        String[] valuesArr = insertSQL.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+
+        //remove the first '(' and last ')' in the every value
+        //and check if there is a space in front of quote, if not then add a space in front of quote
+        for (int i = 0; i < valuesArr.length; i++) {
+            String temp1 = valuesArr[i].trim();
+            String temp = removeFirstAndLastChar(temp1);
+            temp = temp.replaceAll("(?<!\\s)\"|\"(?!\\s)", " \"");
+            valuesArr[i] = temp;
         }
-        return recordList;
+
+
+        ArrayList<String> attributeTypeList = table.getAttriType_list();
+        for (int i = 0; i < valuesArr.length; i++) {
+            //for every value string: split by space but not space in the quote
+            String[] splitStr = valuesArr[i].split("\\s+(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+            for (int m = 0; m < splitStr.length; m++) {
+                String trimmedString = splitStr[m].trim();
+                if (trimmedString.isEmpty()) {
+                    System.arraycopy(splitStr, m + 1, splitStr, m, splitStr.length - m - 1);
+                    m--; // to re-check the same index after shifting the elements left
+                    splitStr = Arrays.copyOf(splitStr, splitStr.length - 1); // to resize the array
+                }
+            }
+            result.add(splitStr);
+        }
+
+        return result;
     }
 
+
+    public Record validateDataType(String[] valueArr, ArrayList<String> attributeList) {
+        ArrayList<Object> result = new ArrayList<>();
+        if (valueArr.length != attributeList.size()) {
+            System.err.println("Number of attributes don't match. Expect " + attributeList.size() + " attributes");
+            System.err.println("ERROR");
+            return null;
+        } else {
+            for(int i = 0; i < attributeList.size(); i++) {
+                String type = attributeList.get(i).substring(0,1);
+                String value = valueArr[i];
+                switch (type) {
+                    case "2":
+                        if (value.contains("\"")) {
+                            System.err.println("Expect " + value + " is a boolean but got a string");
+                            System.err.println("ERROR");
+                            return null;
+                        } else {
+                            if (isBoolean(value)) {
+                                result.add(Boolean.valueOf(value));
+                                break;
+                            } else {
+                                System.err.println("Expect " + value + " is a boolean: true/false but got " + value);
+                                System.err.println("ERROR");
+                                return null;
+                            }
+                        }
+                    case "3":
+                        if (value.contains("\"")) {
+                            System.err.println("Expect " + value + " is an integer but got a string");
+                            System.err.println("ERROR");
+                            return null;
+                        } else {
+                            if (isInteger(value)) {
+                                result.add(Integer.valueOf(value));
+                                break;
+                            } else {
+                                System.err.println("Expect " + value + " is an integer but got " + value);
+                                System.err.println("ERROR");
+                                return null;
+                            }
+                        }
+                    case "4":
+                        if (value.contains("\"")) {
+                            System.err.println("Expect " + value + " is an integer but got a string");
+                            System.err.println("ERROR");
+                            return null;
+                        } else {
+                            if (isDouble(value)) {
+                                result.add(Double.valueOf(value));
+                                break;
+                            } else {
+                                System.err.println("Expect " + value + " is a double but got " + value);
+                                System.err.println("ERROR");
+                                return null;
+                            }
+                        }
+                    case "5":
+                    case "6":
+                        if (value.charAt(0) == '"' && (value.substring(value.length()-2)).equals(" \"")){
+                            String length = attributeList.get(i).substring(1);
+                            value = removeFirstAndLastChar(value);
+                            value = value.trim().replaceAll("\\s+$", "");
+                            if (value.length() > Integer.parseInt(length)) {
+                                System.err.println("Expect " + value + " is a string of max size " + length + " but got " + value.length());
+                                System.err.println("ERROR");
+                                return null;
+                            } else {
+                                result.add(value);
+                                break;
+                            }
+                        } else {
+                            System.err.println("Expect " + value + " is a string but got " + value + " that is not in quotations");
+                            System.err.println("ERROR");
+                            return null;
+
+                        }
+                }
+            }
+        }
+
+        return new Record(result, attributeList);
+    }
 
     /**
      * Method compares 2 Objects
@@ -673,22 +746,26 @@ public class PageBuffer {
         ArrayList<Integer> pageid_list = table.getPageID_list();
         if (pageid_list.size() == 0) {
             for (String attributeName : table.getAttriName_list()) {
-                System.out.println("  |  " + attributeName + "  |  ");
+                System.out.print("  |  " + attributeName + "  |  ");
             }
-            System.out.println("\n");
+            System.out.println("\n\n");
         }
-        int index = 4;
+
         for (int i = 0; i < pageid_list.size(); i++) {
             Page page = findPageInBuffer(table.getPageID_list().get(i), this);
             if (page == null) {
-                page = readFromDiskWithRandomAccess(table.getTableName(), (index * i) + 4, this.page_size);
+                int pageID = pageid_list.get(i);
+                ArrayList<Integer> pageIDListFromDiskWithRA = getPageIDListFromDiskWithRA(table);
+                int indexOfPageID = pageIDListFromDiskWithRA.indexOf(pageID);
+                int offset = indexOfPageID * this.page_size;
+                page = readFromDiskWithRandomAccess(pageid_list.get(i), table.getTableName(), offset , this.page_size);
                 if (page.getRecordList() != null) {
                     if (page.getRecordList().size() == 0) {
                         System.out.println("No record in table: " + table.getTableName());
                         System.out.println("SUCCESS");
                     } else {
                         for (String attributeName : table.getAttriName_list()) {
-                            System.out.println("  |  " + attributeName + "  |  ");
+                            System.out.print("  |  " + attributeName + "  |  ");
                         }
                         System.out.println("\n");
                         for (Record record : page.getRecordList()) {
@@ -697,64 +774,35 @@ public class PageBuffer {
                     }
                 } else {
                     for (String attributeName : table.getAttriName_list()) {
-                        System.out.println("  |  " + attributeName + "  |  ");
+                        System.out.print("  |  " + attributeName + "  |  ");
                     }
                     System.out.println("\n");
                 }
 
-            } else{
+            } else {
                 if (page.getRecordList() != null) {
                     if (page.getRecordList().size() == 0) {
                         System.out.println("No record in table: " + table.getTableName());
                         System.out.println("SUCCESS");
                     } else {
                         for (String attributeName : table.getAttriName_list()) {
-                            System.out.println("  |  " + attributeName + "  |  ");
+                            System.out.print("  |  " + attributeName + "  |  ");
                         }
                         System.out.println("\n");
+
                         for (Record record : page.getRecordList()) {
                             System.out.println(printRecord(record));
                         }
                     }
                 } else {
                     for (String attributeName : table.getAttriName_list()) {
-                        System.out.println("  |  " + attributeName + "  |  ");
+                        System.out.print("  |  " + attributeName + "  |  ");
                     }
                     System.out.println("\n");
                 }
             }
         }
     }
-
-
-
-    /**
-     * Method prints all the records of a table
-     * @param table table name
-     */
-//    public void selectStarFromTable(Table table) {
-//        ArrayList<Record> recordList = getAllRecordsByTable(table);
-//        if (recordList != null) {
-//            if (recordList.size() == 0) {
-//                System.out.println("No record in this table.");
-//                System.out.println("SUCCESS");
-//            } else {
-//                for (String name : table.getAttriName_list()) {
-//                    System.out.print("  |  " + name + "  |  ");
-//                }
-//                System.out.print("\n");
-//
-//                for (Record record : recordList) {
-//                    System.out.println(printRecord(record));
-//                }
-//            }
-//        } else {
-//            for (String name : table.getAttriName_list()) {
-//                System.out.print("  |  " + name + "  |  ");
-//            }
-//            System.out.print("\n");
-//        }
-//    }
 
 
     /**
@@ -886,6 +934,518 @@ public class PageBuffer {
     public String getRecordByPrimary(Record record) {
         return printRecord(record);
     }
+
+    //  enum: {boolean 2, integer 3, double 4, char 5, varchar 6} AttributeType
+    //  enum: {primary 0 1}
+
+    /**
+     * Method returns the string of a table
+     * @param table table
+     * @return string of table
+     */
+    public String tableToString(Table table) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("Table Name: ");
+        stringBuilder.append(table.getTableName()).append("\n");
+        stringBuilder.append("Table schema: \n");
+        ArrayList<String> attriNameList = table.getAttriName_list();
+        ArrayList<String> attriTypeList = table.getAttriType_list();
+        String primarykeyName = table.getPrimaryKeyName();
+        for (int i = 0; i < attriNameList.size(); i++) {
+            stringBuilder.append("\t");
+            stringBuilder.append(attriNameList.get(i));
+            stringBuilder.append(":");
+            char attriType = attriTypeList.get(i).charAt(0);
+            if (attriType == '2') {
+                stringBuilder.append("boolean");
+            } else if (attriType == '3') {
+                stringBuilder.append("integer");
+            } else if (attriType == '4') {
+                stringBuilder.append("double");
+            } else if (attriType == '5') {
+                stringBuilder.append("char(");
+                String temp = attriTypeList.get(i).substring(1);
+                stringBuilder.append(temp);
+                stringBuilder.append(")");
+            } else if (attriType == '6') {
+                stringBuilder.append("varchar(");
+                String temp = attriTypeList.get(i).substring(1);
+                stringBuilder.append(temp);
+                stringBuilder.append(")");
+            } else {
+                System.out.println("Something goes wrong while converting table to string!");
+                System.err.println("ERROR");
+                return null;
+            }
+            if (primarykeyName.equals(attriNameList.get(i))) {
+                stringBuilder.append(" primarykey ");
+            }
+            stringBuilder.append("\n");
+        }
+        stringBuilder.append("Pages: ");
+        stringBuilder.append(table.getPageID_list().size()).append("\n");
+        stringBuilder.append("Records: ");
+        int numRec = getNumRecord(table);
+        table.setRecordNum(numRec);
+        stringBuilder.append(table.getRecordNum()).append("\n");
+
+        return stringBuilder.toString();
+    }
+
+
+    public int getNumRecord(Table table) {
+        int result = 0;
+        ArrayList<Integer> NumRecordList = new ArrayList<>();
+        String path = this.db_loc + "/Tables/" + table.getTableName() + ".txt";
+        File file = new File(path);
+        if (file.exists()) {
+            try {
+                RandomAccessFile randomAccessFile = new RandomAccessFile(file.getPath(), "rw");
+                int offset = Integer.BYTES;
+
+                for (int i = 0; i < table.getPageID_list().size(); i++) {
+                    randomAccessFile.seek(offset);
+                    byte[] numRecArr = new byte[Integer.BYTES];
+                    randomAccessFile.readFully(numRecArr);
+                    int numRec = ByteBuffer.wrap(numRecArr).getInt();
+                    NumRecordList.add(numRec);
+                    offset = offset + this.page_size;
+                }
+            } catch (IOException e) {
+                System.err.println("An error occurred while reading from the file.");
+                e.printStackTrace();
+                System.err.println("ERROR");
+
+            }
+        } else {
+
+        }
+
+        for(Integer num : NumRecordList) {
+            result = result + num;
+        }
+        return result;
+    }
+
+
+    public ArrayList<Integer> getPageIDOfWholeCatalog() {
+        ArrayList<Integer> pageIDList = new ArrayList<>();
+        String path = this.db_loc + "/Tables";
+        File directory = new File(path);
+        File[] files = directory.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile()) {
+                    try {
+                        Table table = getCatalog().getTableByName(file.getName().substring(0,3));
+                        RandomAccessFile randomAccessFile = new RandomAccessFile(file.getPath(), "rw");
+                        int offset = 0;
+                        for (int i = 0; i < table.getPageID_list().size(); i++) {
+                            randomAccessFile.seek(offset);
+                            byte[] pageIDArr = new byte[Integer.BYTES];
+                            randomAccessFile.readFully(pageIDArr);
+                            int pageID = ByteBuffer.wrap(pageIDArr).getInt();
+                            pageIDList.add(pageID);
+                            offset = offset + this.page_size;
+                        }
+                    } catch (IOException e) {
+                        System.err.println("An error occurred while reading from the file.");
+                        e.printStackTrace();
+                        System.err.println("ERROR");
+                        return null;
+                    }
+                }
+            }
+        }
+        return pageIDList;
+    }
+
+
+    /**
+     * Method converts arraylist of record string to arraylist of records
+     *
+     * @param recordList arraylist of record string
+     * @param table      table that records belong to
+     * @return arraylist of records
+     */
+//    public ArrayList<Record> convertStringToRecordList(ArrayList<String[]> recordList, Table table) {
+//        ArrayList<Record> recordArrayList = new ArrayList<>();
+//        ArrayList<String> attriNameList = table.getAttriName_list();
+//
+//        for (String[] stringarry : recordList) {
+//            if (stringarry.length != attriNameList.size()) {
+//                System.err.println("Number of attributes don't match. Expect " + attriNameList.size() + " attributes");
+//                System.err.println("ERROR");
+//                return null;
+//            } else {
+//                Record record = convertStringArrToRecord(stringarry, table);
+//                if (record == null) {
+//                    return recordArrayList;
+//                }
+//                recordArrayList.add(record);
+//            }
+//        }
+//        return recordArrayList;
+//    }
+
+
+    /**
+     * Method converts byte array of record to record object
+     *
+     * @param strArr byte array of record
+     * @param table  table
+     * @return record object
+     */
+//    public Record convertStringArrToRecord(String[] strArr, Table table) {
+//        ArrayList<Object> valuesList = new ArrayList<>();
+//        String primaryKey = table.getPrimaryKeyName();
+//        ArrayList<String> attriTypeList = table.getAttriType_list();
+//
+//        //check primaryKey if duplication and can't be null
+//        int indexOfPrimaryKey = getIndexOfColumn(primaryKey, table);
+//        for (int i = 0; i < strArr.length; i++) {
+//            char attrType = attriTypeList.get(i).charAt(0);
+//            if (i == indexOfPrimaryKey) {
+//                String value = strArr[i];
+//                if (value.equalsIgnoreCase("null")) {
+//                    System.err.println("Primary key can't be null");
+//                    System.err.println("ERROR");
+//                    return null;
+//                }
+//            }
+//            if (attrType == '2') {
+//                if (isBoolean(strArr[i])) {
+//                    Object valueObj = strArr[i].equalsIgnoreCase("true") ? Boolean.TRUE :
+//                            strArr[i].equalsIgnoreCase("false") ? Boolean.FALSE : null;
+//                    valuesList.add(valueObj);
+//                } else {
+//                    System.err.println("Expect " + strArr[i] + " is a boolean: true/false but got " + strArr[i]);
+//                    System.err.println("ERROR");
+//                    return null;
+//                }
+//            } else if (attrType == '3') {
+//                if (isInteger(strArr[i])) {
+//                    Object valueObj = Integer.valueOf(strArr[i]);
+//                    valuesList.add(valueObj);
+//                } else {
+//                    System.err.println("Expect " + strArr[i] + " is a integer but got " + strArr[i]);
+//                    System.err.println("ERROR");
+//                    return null;
+//                }
+//            } else if (attrType == '4') {
+//                if (isDouble(strArr[i])) {
+//                    Object valueObj = Double.valueOf(strArr[i]);
+//                    valuesList.add(valueObj);
+//                } else {
+//                    System.err.println("Expect " + strArr[i] + " is a double but got " + strArr[i]);
+//                    System.err.println("ERROR");
+//                    return null;
+//                }
+//            } else if (attrType == '5') {
+//                if (!strArr[i].substring(0, 1).equals("\"") || !strArr[i].substring(strArr[i].length() - 1, strArr[i].length()).equals("\"")) {
+//                    System.err.println("Expect quotations for string values");
+//                    System.err.println("ERROR");
+//                    return null;
+//                }
+//                strArr[i] = strArr[i].substring(1, strArr[i].length() - 1);
+//
+//                String sizeString = attriTypeList.get(i).substring(1);
+//                if (isInteger(sizeString)) {
+//                    int size = Integer.parseInt(sizeString);
+//                    int inputSize = strArr[i].length();
+//                    if (inputSize != size) {
+//                        System.err.println("Expect " + strArr[i] + " has " + size + " chars but got " + inputSize + " chars");
+//                        System.err.println("ERROR");
+//                        return null;
+//                    } else {
+//                        valuesList.add(strArr[i]);
+//                    }
+//                }
+//            } else if (attrType == '6') {
+//                if (!strArr[i].substring(0, 1).equals("\"") || !strArr[i].substring(strArr[i].length() - 1, strArr[i].length()).equals("\"")) {
+//                    System.err.println("Expect quotations for string values");
+//                    System.err.println("ERROR");
+//                    return null;
+//                }
+//                // take out the quote in the front and at the end.
+//                strArr[i] = strArr[i].substring(1, strArr[i].length() - 1);
+//
+//                String sizeString = attriTypeList.get(i).substring(1);
+//                if (isInteger(sizeString)) {
+//                    int size = Integer.parseInt(sizeString);
+//                    int inputSize = strArr[i].length();
+//                    if (inputSize > size) {
+//                        System.err.println("Expect " + strArr[i] + " has " + size + " chars but got " + inputSize + " chars");
+//                        System.err.println("ERROR");
+//                        return null;
+//                    } else {
+//                        valuesList.add(strArr[i]);
+//                    }
+//                }
+//            } else {
+//                System.err.println("Fail to parse the input to record");
+//                System.err.println("ERROR");
+//                return null;
+//            }
+//        }
+//        return new Record(valuesList, new ArrayList<String>());
+//    }
+
+
+
+    // "create table student( name varchar(15), studentID integer primarykey, address char(20), gpa double, incampus boolean)"
+    // FORMAT: insert into student values ("Alice" 1234 "86 Noel Drive Rochester NY14606" 3.2 true),("(A)" 1 "school" 2 "(false")
+    // check: many tuples in 1 sql, check duplicate primary, check how many attributes, check the type of attribute,
+    // check the length in varchar and char, check null, check if table name is exist
+
+    /**
+     * Method return the input record string to the list of string array
+     *
+     * @param inputTupesList record string input
+     * @return arraylist of array string (one string[] is the record string)
+     */
+//    public ArrayList<Record> returnListofStringArrRecord(String inputTupesList, Table table) {
+//        ArrayList<Record> recordList = new ArrayList<>();
+//        String[] splitString = inputTupesList.split(",");
+//
+//        for (String str : splitString) {
+//            if (!str.substring(0, 1).equals("(") || !str.substring(str.length() - 1, str.length()).equals(")")) {
+//                return null;
+//            }
+//            String tupleAfterRemoveParenthesis = removeFirstAndLastChar(str);
+//            String[] tupleSplitBySpace = tupleAfterRemoveParenthesis.split(" ");
+//            if (tupleSplitBySpace.length != table.getAttriName_list().size()) {
+//                // number of attributes don't match
+//                return null;
+//            }
+//
+//            Record r = convertStringArrToRecord(tupleSplitBySpace, table);
+//            if (r != null) {
+//                recordList.add(r);
+//            }
+//        }
+//        return recordList;
+//    }
+
+
+    /**
+     * Method inserts the record to table
+     *
+     * @param inp       input SQL
+     * @param tablename table name
+     * @return true if successfully otherwise false
+     */
+//    public boolean insertRecordToTable(String inp, String tablename) {
+//        if (this.storageManager.getCatalog().getTablesList() != null) {
+//            Table table = this.storageManager.getTableByName(tablename);
+//            if (table != null) {
+//                int indexOfPrimaryKey = getIndexOfColumn(table.getPrimaryKeyName(), table);
+//                int startIndex = inp.indexOf("(");
+//                inp = inp.substring(startIndex, inp.length() - 1);
+//                ArrayList<Record> recordArrayList = returnListofStringArrRecord(inp, table);
+//                //ArrayList<Main.Record> recordArrayList = convertStringToRecordList(stringArrRecordList, table);
+//                if (recordArrayList != null) {
+//                    for (Record record : recordArrayList) {
+//                        boolean insertAlready = false;
+//                        if (table.getPageID_list().size() == 0) {
+//                            removeLRUFromBufferIfOverflow(getCatalog());
+//                            Page page = new Page(getPageIDList().size() + 1, table.getTableName(), this.db_loc);
+//                            page.getRecordList().add(record);
+//                            page.incCurrentPageSize(record, record.convertRecordToByteArr(record));
+//                            table.getPageID_list().add(getPageIDList().size() + 1);
+//                            table.increaseNumRecordBy1();
+//
+//                            // change split
+//                            if (record.convertRecordToByteArr(record).length > this.page_size) {
+//                                System.out.println("page size" + this.page_size);
+//                                System.err.println("This record is bigger than page size");
+//                                return false;
+//                            }
+//
+//                            //check if the page is in the buffer
+//                            // if not then add to pagelist buffer
+//                            if (!this.pagelistBuffer.contains(page)) {
+//                                this.pagelistBuffer.add(page);
+//                                removeLRUFromBufferIfOverflow(getCatalog());
+//                                //else then remove that page and add back to the last (this is the most recently use)
+//                            } else {
+//                                int indexPage = this.pagelistBuffer.indexOf(page);
+//                                if (indexPage != -1) {
+//                                    this.pagelistBuffer.remove(indexPage);
+//                                    this.pagelistBuffer.add(page);
+//                                    removeLRUFromBufferIfOverflow(getCatalog());
+//                                }
+//
+//                            }
+//                            insertAlready = true;
+//                        } else {
+//                            ArrayList<Integer> originalPageIDList = new ArrayList<>(table.getPageID_list());
+//
+//                            for (int m = 0; m < originalPageIDList.size(); m++) {
+//
+//                                Page page = new Page(originalPageIDList.get(m), table.getTableName(), this.db_loc);
+//                                if (!this.pagelistBuffer.contains(page)) {
+//                                    this.pagelistBuffer.add(page);
+//                                    removeLRUFromBufferIfOverflow(getCatalog());
+//                                } else {
+//                                    for (Page tempPage : this.pagelistBuffer) {
+//                                        if (tempPage.equals(page)) {
+//                                            page = tempPage;
+//                                            break;
+//                                        }
+//                                    }
+//                                    int indexPage = this.pagelistBuffer.indexOf(page);
+//                                    if (indexPage != -1) {
+//                                        this.pagelistBuffer.remove(indexPage);
+//                                        this.pagelistBuffer.add(page);
+//                                        removeLRUFromBufferIfOverflow(getCatalog());
+//                                    }
+//                                }
+//
+//                                for (int i = 0; i < page.getRecordList().size(); i++) {
+//                                    Record tempRecord = page.getRecordList().get(i);
+//                                    Object recordPrimaryValue = record.getValuesList().get(indexOfPrimaryKey);
+//                                    Object tempRecordPrimaryValue = tempRecord.getValuesList().get(indexOfPrimaryKey);
+//                                    int compare = compare2Records(recordPrimaryValue, tempRecordPrimaryValue);
+//                                    if (compare == 0) {
+//                                        System.err.println("Can't have duplicated primary key: " + printRecord(record));
+//                                        System.err.println("ERROR");
+//                                        return false;
+//                                    }
+//
+//                                    // if primary key of new record does not duplicate
+//                                    // split page
+//                                    if (compare < 0) {
+//                                        System.out.println(this.page_size);
+//                                        page.getRecordList().add(i, record);
+//                                        page.incCurrentPageSize(record, record.convertRecordToByteArr(record));
+//                                        table.increaseNumRecordBy1();
+//                                        int currentPagesize = page.getCurrent_page_size();
+//                                        //check if page overflows
+//                                        if (currentPagesize > this.page_size) {
+//                                            int midpoint = page.getRecordList().size() / 2;
+//                                            ArrayList<Record> halfRecord = new ArrayList<>();
+//                                            // haldRecord stores the second half of the page when it overflows
+//                                            for (int j = midpoint; j < page.getRecordList().size(); j++) {
+//                                                halfRecord.add(page.getRecordList().get(j));
+//                                            }
+//
+//                                            page.getRecordList().subList(midpoint, page.getRecordList().size()).clear();
+//                                            Page newPage = new Page(getPageIDList().size() + 1, table.getTableName(), this.db_loc);
+//                                            newPage.getRecordList().addAll(halfRecord);
+//
+//                                            //decrement page 1 size after splitting
+//                                            //increment those into page 2
+//                                            for (Record rec : halfRecord) {
+//                                                page.decCurrentPageSize(rec, record.convertRecordToByteArr(rec));
+//                                                newPage.incCurrentPageSize(rec, record.convertRecordToByteArr(rec));
+//                                            }
+//
+//                                            //add new page into buffer
+//                                            this.pagelistBuffer.add(newPage);
+//                                            //check if buffer full
+//                                            removeLRUFromBufferIfOverflow(getCatalog());
+//                                            ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
+//                                            //add the new page into the table in catalog
+//                                            for (Table tbl : tableListInCatalog) {
+//                                                if (tbl.getTableName().equals(table.getTableName())) {
+//                                                    tbl.getPageID_list().add(m + 1, newPage.getPageID());
+//                                                }
+//                                            }
+//                                        }
+//                                        insertAlready = true;
+//                                        break;
+//                                    }
+//                                }
+//                            }
+//                        }
+//                        if (!insertAlready) {
+//                            ArrayList<Integer> pageIDList = table.getPageID_list();
+//                            Page lastPage = new Page(pageIDList.get(pageIDList.size() - 1), table.getTableName(), this.db_loc);
+//                            for (Page tempPage : this.pagelistBuffer) {
+//                                if (tempPage.equals(lastPage)) {
+//                                    lastPage = tempPage;
+//                                    break;
+//                                }
+//                            }
+//                            lastPage.getRecordList().add(record);
+//                            lastPage.incCurrentPageSize(record, record.convertRecordToByteArr(record));
+//                            table.increaseNumRecordBy1();
+//                            int currentPagesize = lastPage.getCurrent_page_size();
+//                            if (currentPagesize > this.page_size) {
+//                                int midpoint = lastPage.getRecordList().size() / 2;
+//                                ArrayList<Record> halfRecord = new ArrayList<>();
+//                                for (int j = midpoint; j < lastPage.getRecordList().size(); j++) {
+//                                    halfRecord.add(lastPage.getRecordList().get(j));
+//                                }
+//                                lastPage.getRecordList().subList(midpoint, lastPage.getRecordList().size()).clear();
+//                                Page newPage = new Page(getPageIDList().size() + 1, table.getTableName(), this.db_loc);
+//                                newPage.getRecordList().addAll(halfRecord);
+//                                for (Record rec : halfRecord) {
+//                                    lastPage.decCurrentPageSize(rec, record.convertRecordToByteArr(rec));
+//                                    newPage.incCurrentPageSize(rec, record.convertRecordToByteArr(rec));
+//                                }
+//
+//                                this.pagelistBuffer.add(newPage);
+//                                removeLRUFromBufferIfOverflow(getCatalog());
+//                                ArrayList<Table> tableListInCatalog = this.storageManager.getCatalog().getTablesList();
+//                                for (Table tbl : tableListInCatalog) {
+//                                    if (tbl.getTableName().equals(table.getTableName())) {
+//                                        tbl.getPageID_list().add(newPage.getPageID());
+//                                        break;
+//                                        //tbl.getPageID_list().add(tableListInCatalog.size() + 1, newPage.getPageID());
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//
+//                    if (inp.split(",").length == recordArrayList.size()) {
+//                        System.out.println("All record inserted.");
+//                        return true;
+//                    } else if (recordArrayList.size() > 0) {
+//                        System.out.println("The first " + recordArrayList.size() + " record has been inserted.");
+//                        return false;
+//                    } else {
+//                        return false;
+//                    }
+//
+//                }
+//            }
+//            return false;
+//        }
+//        return false;
+//    }
+
+
+    /**
+     * Method prints all the records of a table
+     * @param table table name
+     */
+//    public void selectStarFromTable(Table table) {
+//        ArrayList<Record> recordList = getAllRecordsByTable(table);
+//        if (recordList != null) {
+//            if (recordList.size() == 0) {
+//                System.out.println("No record in this table.");
+//                System.out.println("SUCCESS");
+//            } else {
+//                for (String name : table.getAttriName_list()) {
+//                    System.out.print("  |  " + name + "  |  ");
+//                }
+//                System.out.print("\n");
+//
+//                for (Record record : recordList) {
+//                    System.out.println(printRecord(record));
+//                }
+//            }
+//        } else {
+//            for (String name : table.getAttriName_list()) {
+//                System.out.print("  |  " + name + "  |  ");
+//            }
+//            System.out.print("\n");
+//        }
+//    }
+
 }
 
 

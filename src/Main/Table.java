@@ -31,6 +31,14 @@ public class Table {
 
     }
 
+    public void setRecordNum(int num) {
+        this.recordNum = num;
+    }
+
+    public int getRecordNum() {
+        return this.recordNum;
+    }
+
     /**
      * Method increases the number of record by 1
      */
@@ -42,13 +50,18 @@ public class Table {
         this.pageNum += 1;
     }
 
-    /**
-     * Method get the number of record after updated
-     * @return the number of records
-     */
-    public int getRecordNumUpdate() {
-        return this.recordNum;
-    }
+//    /**
+//     * Method get the number of record after updated
+//     * @return the number of records
+//     */
+//    public int getRecordNumUpdate() {
+//
+//        for (Page page : page_list) {
+//            this.recordNum = recordNum + page.getNumRec();
+//        }
+//
+//        return this.recordNum;
+//    }
 
 
     /**

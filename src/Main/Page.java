@@ -28,6 +28,9 @@ public class Page {
     private String DBLocation;
     private String tablename;
 
+    public Page(int pageID) {
+        this.pageID = pageID;
+    }
 
     public Page(int pageID, String tableName, String DBLocation ) {
         this.pageID = pageID;
@@ -39,12 +42,17 @@ public class Page {
 
     // constructor for when creating a new page
     // not pulling from hardware
-    public Page(int numRec,int pageID, ArrayList<Pointer> pointers,ArrayList<Record> record_list){
-        numRec = getNumRec();
+    public Page(int pageID, ArrayList<Pointer> pointers,ArrayList<Record> record_list){
         this.pageID = pageID;
         this.pointerList = pointers;
         this.record_list = record_list;
 
+    }
+
+    public Page(int pageID, String tablename, ArrayList<Record> record_list) {
+        this.pageID = pageID;
+        this.tablename = tablename;
+        this.record_list = record_list;
     }
 
     public String getTablename(){
@@ -110,39 +118,6 @@ public class Page {
         return this.record_list;
     }
 
-    public ArrayList<Pointer> getPointerList(){
-        return this.pointerList;
-    }
-
-    /**
-     * Methods gets the list of records from a particular page from a given table
-     * @param pageID page ID
-     * @return Arraylist of record
-     */
-//    public ArrayList<Record> getRecordListFromPage(int pageID,){
-//
-//    }
-
-    /**
-     * Method read the page file
-     * @param path path of page file
-     * @return byte array of page file
-     */
-    public static byte[] readPageFile(String path) {
-        try {
-            File file = new File(path);
-            FileInputStream fs = new FileInputStream(file);
-            byte[] arr = new byte[(int) file.length()];
-            fs.read(arr);
-            fs.close();
-            return arr;
-        } catch (IOException e) {
-            System.err.println("An error occurred while reading the file.");
-            e.printStackTrace();
-            System.err.println("ERROR");
-            return null;
-        }
-    }
 
     public int getNumRec(){
         return this.record_list.size();
@@ -157,33 +132,33 @@ public class Page {
     public byte[] convertPageToByteArr(Page page, int page_size) {
         int indextracking = 0;
         byte[] result = new byte[page_size];
-        byte[] numRecordArr = ByteBuffer.allocate(Integer.BYTES).putInt(page.getNumRec()).array();
-        ArrayList<Pointer> pointerList = page.getPointerList();
-        ArrayList<Record> record_list = page.getRecordList();
-
-        System.arraycopy(numRecordArr, 0, result, indextracking, numRecordArr.length);
-        // byte arr at idx 4
-        indextracking += numRecordArr.length;
         byte[] pageId = ByteBuffer.allocate(Integer.BYTES).putInt(page.getPageID()).array();
-
         System.arraycopy(pageId,0,result,indextracking,pageId.length);
-
         indextracking += pageId.length;
 
-        int offset = page_size;
-        for (int i = 0; i < page.getNumRec(); i++) {
-            Pointer pointer = pointerList.get(i);
-            byte[] pointerByte = pointer.serializePointer();
-            System.arraycopy(pointerByte,0,result,indextracking,pointerByte.length);
-            indextracking += pointerByte.length;
+        byte[] numRecordArr = ByteBuffer.allocate(Integer.BYTES).putInt(page.getNumRec()).array();
+        System.arraycopy(numRecordArr, 0, result, indextracking, numRecordArr.length);
+        indextracking += numRecordArr.length;
+        ArrayList<Record> record_list = page.getRecordList();
 
+        int indexReverse = page_size;
+        for (int i = 0; i < record_list.size(); i++) {
             Record record = record_list.get(i);
             byte[] recordArr = record.convertRecordToByteArr(record);
-            int recLength = recordArr.length;
-            offset -= recLength;
-            System.arraycopy(recordArr,0,result, offset,recLength);
+            int length = recordArr.length;
+            indexReverse = indexReverse - length;
+            byte[] offSetArr = ByteBuffer.allocate(Integer.BYTES).putInt(indexReverse).array();
+            System.arraycopy(offSetArr, 0, result, indextracking, offSetArr.length);
+            indextracking = indextracking + offSetArr.length;
+
+            byte[] lengthArr = ByteBuffer.allocate(Integer.BYTES).putInt(length).array();
+            System.arraycopy(lengthArr, 0, result, indextracking, lengthArr.length);
+            indextracking = indextracking + lengthArr.length;
+
+            System.arraycopy(recordArr, 0, result, indexReverse , recordArr.length);
 
         }
+
         return result;
     }
 
@@ -193,47 +168,29 @@ public class Page {
      * @param byteArr byte array of page
      * @return arraylist of records
      */
-    public static Page convertByteArrToPage(byte[] byteArr) {
+    public Page convertByteArrToPage(byte[] byteArr, int pageID, String tablename) {
         ArrayList<Record> recordArrayList = new ArrayList<>();
+        int indextracking = 0;
         ByteBuffer byteBuffer = ByteBuffer.wrap(byteArr);
-        int recordNum = byteBuffer.getInt();
         int pageId = byteBuffer.getInt();
-        ArrayList<Pointer> pointersList = new ArrayList<>();
-        int indextracking = 8;
+        indextracking += Integer.BYTES;
+        int recordNum = byteBuffer.getInt();
+        indextracking += Integer.BYTES;
 
         for (int i = 0; i < recordNum; i++) {
+            int offset = byteBuffer.getInt(indextracking);
+            indextracking = indextracking + Integer.BYTES;
+            int length = byteBuffer.getInt(indextracking);
+            indextracking = indextracking + Integer.BYTES;
 
-            // get the next 8 bytes for Pointer.
-            byte[] pointerByteArr = Arrays.copyOfRange(byteArr, indextracking, indextracking + 8);
-            indextracking += pointerByteArr.length;
-            Pointer pointer = Pointer.deserializePointer(pointerByteArr);
-            int offset = pointer.getOffset();
-            int length = pointer.getLength();
-            pointersList.add(pointer);
-
-            // ***
             byte[] recordArr = Arrays.copyOfRange(byteArr, offset, offset+length);
             Record record = Record.convertByteArrToRecord(recordArr);
             recordArrayList.add(record);
-
         }
 
-        Page page = new Page(recordNum,pageId,pointersList,recordArrayList);
+        Page page = new Page(pageID, tablename, recordArrayList);
+
         return page;
-    }
-
-    /**
-     * This method checks if a string is an integer or not
-     * @param str string needs to be checks
-     * @return true if a string is integer, false if not
-     */
-    public static boolean isInteger(String str) {
-        try {
-            Integer.parseInt(str);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
     }
 
 
@@ -251,19 +208,6 @@ public class Page {
     }
 
 
-    public static int computeSmallestOffset(ArrayList<Pointer> pointerArrayList){
-        int min = pointerArrayList.get(0).getOffset();
-        for(Pointer p: pointerArrayList){
-            int currOffset = p.getOffset();
-            if(currOffset < p.getOffset()){
-                min = currOffset;
-            }
-        }
-
-        return min;
-
-    }
-
     @Override
     public boolean equals(Object o){
         if (this == o){
@@ -276,8 +220,4 @@ public class Page {
         return pointerList.equals(other.pointerList) && record_list.equals(other.record_list);
     }
 
-    @Override
-    public String toString(){
-        return "Page{ PointerList = " + pointerList.toString() + "record_list = " + record_list.toString() + " }";
-    }
 }

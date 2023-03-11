@@ -24,14 +24,8 @@ public class AttributeInfo {
     }
 
     public byte[] serializeAttributeInfo(){
-        //byte[] strArr = ((String) temp).getBytes(StandardCharsets.UTF_8)
-
-        //byte[] typeByteArray = ByteBuffer.allocate(4).putChar(this.type).array();
-
-        //byte[] typeByteArray = (this.type).getBytes(StandardCharsets.UTF_8);
 
         byte[] typeByteArray = (this.type).getBytes(StandardCharsets.UTF_8);
-
 
         byte[] lengthByteArray = ByteBuffer.allocate(Integer.BYTES).putInt(this.length).array();
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
@@ -50,10 +44,9 @@ public class AttributeInfo {
     public static AttributeInfo deserializeAttributeInfo(byte[] byteArray){
         int idx = 0;
 
-
         byte[] typeByteArray = Arrays.copyOfRange(byteArray, idx, idx + 1);
         String type = new String(typeByteArray,StandardCharsets.UTF_8);
-        //char type = ByteBuffer.wrap(typeByteArray).getChar();
+
         idx += 1;
         byte[] lengthByteArray = Arrays.copyOfRange(byteArray, idx, idx + Integer.BYTES);
         int length = ByteBuffer.wrap(lengthByteArray).getInt();
