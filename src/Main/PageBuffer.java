@@ -54,8 +54,8 @@ public class PageBuffer {
      * @return catalog
      */
     public Catalog getCatalog() {
-        return storageManager.getCatalog();
-    }
+        return this.storageManager.getCatalog();
+    }   //TODO: see if this causes issues, IT SHOULDNT, but if anything then we gotta have
 
     /**
      * Method saves the pages buffer to disk and catalog file to disk
