@@ -190,12 +190,13 @@ public class Main {
                 }
 
             } else if (optionArr[0].equals("drop") && optionArr[1].equals("table") && optionArr.length == 3) {
+                //TODO: test drop table
                 if (optionArr[2].charAt(optionArr[2].length() - 1) == ';') {
                     optionArr[2] = optionArr[2].substring(0, optionArr[2].length() - 1);
                 }
                 if (pageBuffer.dropTable(optionArr[2])) {
 
-                    System.out.println("\nTable has been marked for drop, changes will be finalized on quit.");
+                    System.out.println("\nTable has been marked for drop, old file will be removed on quit.");
                     System.out.println("\nSUCCESS");
                 } else {
                     System.err.println("No such table " + optionArr[2]);
@@ -207,8 +208,6 @@ public class Main {
                 if (optionArr[optionArr.length - 1].charAt(optionArr[optionArr.length - 1].length() - 1) == ';') {
                     optionArr[optionArr.length - 1] = optionArr[optionArr.length - 1].substring(0, optionArr[optionArr.length - 1].length() - 1);
                 }
-
-                //TODO: alter table
 
                 if (optionArr[3].equals("drop") && optionArr.length == 5) {
                     // drop <a name>: will remove the attribute with the given name from the table;
@@ -227,13 +226,14 @@ public class Main {
 
                 }
                 else if (optionArr[3].equals("add")) {
+                    //TODO: Test add attribute
+
                     //optionArr[optionArr.length- 1] = optionArr[optionArr.length- 1].substring(0, optionArr[optionArr.length- 1].length() - 1);
 
                     // add <a name> <a type>: will add the attribute with the given name and type to the table;
                     //including its data. add is a keyword.
 
                     if (optionArr.length == 6) {
-                        //TODO no default
                         if (pageBuffer.addAttribute(optionArr[2], optionArr[4], optionArr[5], false, null)) {
                             System.out.println("\nSUCCESS");
                         }
@@ -244,8 +244,6 @@ public class Main {
 
                     }
                     else if (optionArr.length > 6) {
-                        //TODO with default (just shove that value in, no complexity according to prof)
-
                         if (pageBuffer.addAttribute(optionArr[2], optionArr[4], optionArr[5], true, optionArr[7])) {
                             System.out.println("\nSUCCESS");
                         }
