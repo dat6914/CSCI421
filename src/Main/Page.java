@@ -280,4 +280,8 @@ public class Page {
     public String toString(){
         return "Page{ PointerList = " + pointerList.toString() + "record_list = " + record_list.toString() + " }";
     }
+
+    public void setRecordList(ArrayList<Record> records) {
+        this.record_list = records;
+    }
 }

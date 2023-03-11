@@ -412,4 +412,21 @@ public class StorageManager {
     public void setCatalog(Catalog tempCatalog) {
         this.catalog = tempCatalog;
     }
+
+    public AttributeInfo convertToAttributeInfo(String attriType) {
+
+        switch (attriType) {
+            case "boolean" : return new AttributeInfo("2", 1);
+
+            case "int" : return new AttributeInfo("3", Integer.BYTES);
+
+            case "double" : return new AttributeInfo("4", Double.BYTES);
+
+            case "char" : return new AttributeInfo("5", Integer.parseInt(attriType.substring(1)));
+
+            case "varchar" : return new AttributeInfo("6", attriType.length());
+
+            default: return null;
+        }
+    }
 }

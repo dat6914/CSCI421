@@ -204,6 +204,10 @@ public class Main {
 
             } else if (optionArr[0].equals("alter") && optionArr[1].equals("table")) {
                 //optionArr[optionArr.length- 1] = optionArr[optionArr.length- 1].substring(0, optionArr[optionArr.length- 1].length() - 1);
+                if (optionArr[optionArr.length - 1].charAt(optionArr[optionArr.length - 1].length() - 1) == ';') {
+                    optionArr[optionArr.length - 1] = optionArr[optionArr.length - 1].substring(0, optionArr[optionArr.length - 1].length() - 1);
+                }
+
                 //TODO: alter table
 
                 if (optionArr[3].equals("drop") && optionArr.length == 5) {
@@ -218,23 +222,37 @@ public class Main {
 
                     else {
                         System.err.println("No such table " + optionArr[2]);
-                        System.err.println("ERROR");
+                        System.err.println("\nERROR");
                     }
 
-
-
-
                 }
-                else if (optionArr[2].equals("add")) {
-                    optionArr[optionArr.length- 1] = optionArr[optionArr.length- 1].substring(0, optionArr[optionArr.length- 1].length() - 1);
+                else if (optionArr[3].equals("add")) {
+                    //optionArr[optionArr.length- 1] = optionArr[optionArr.length- 1].substring(0, optionArr[optionArr.length- 1].length() - 1);
+
                     // add <a name> <a type>: will add the attribute with the given name and type to the table;
                     //including its data. add is a keyword.
 
                     if (optionArr.length == 6) {
                         //TODO no default
+                        if (pageBuffer.addAttribute(optionArr[2], optionArr[4], optionArr[5], false, null)) {
+                            System.out.println("\nSUCCESS");
+                        }
+                        else {
+                            System.err.println("No such table " + optionArr[2]);
+                            System.err.println("\nERROR");
+                        }
+
                     }
-                    else if (optionArr[6].equals("default")) {
-                        //TODO with default
+                    else if (optionArr.length > 6) {
+                        //TODO with default (just shove that value in, no complexity according to prof)
+
+                        if (pageBuffer.addAttribute(optionArr[2], optionArr[4], optionArr[5], true, optionArr[7])) {
+                            System.out.println("\nSUCCESS");
+                        }
+                        else {
+                            System.err.println("No such table " + optionArr[2]);
+                            System.err.println("\nERROR");
+                        }
                     }
                     else {
                         System.err.println("This is not a valid command.");

@@ -65,13 +65,6 @@ public class PageBuffer {
      * @return true if successful otherwise false
      */
     public boolean quitProgram(StorageManager storageManager, ArrayList<Page> pagelistBuffer) throws IOException {
-        if (this.storageManager.getDropAttributeFlag() == true) {
-            storageManager.setCatalog(storageManager.getTempCatalog());
-
-            this.storageManager.setDropAttributeFlag(false);
-            return true;
-        }
-
         Catalog catalog = storageManager.getCatalog();
         if (catalog != null) {
             byte[] catalogByteArr = catalog.convertCatalogToByteArr(catalog);
@@ -959,36 +952,106 @@ public class PageBuffer {
                 }
             }
 
+            for (int i = 0; i < table.getPageID_list().size(); i++) {
+                Page page = new Page(table.getPageID_list().get(i), table.getTableName(), this.db_loc);
+                //ArrayList<Record> records = getAllRecordsByTable(table);
+                ArrayList<Record> records = page.getRecordList();
 
-            // get data (records) from old table sans the attribute ones
-            //ArrayList<Record> newRecords = new ArrayList<>();
+                for (int j = 0; j < records.size(); j++) {
+                    records.get(j).getValuesList().remove(attributeIndex); // i hope this is how it works??
+                    records.get(j).getAttributeInfoList().remove(attributeIndex);
+
+                }
+                //add new records to page
+                page.setRecordList(records);
+
+                //add page to buffer if there is room
+
+                if (this.pagelistBuffer.size() < this.bufferSize) {
+                    this.pagelistBuffer.add(page);
+                }
+                else {
+                    removeLRUFromBufferIfOverflow(getCatalog());
+                    this.pagelistBuffer.add(page);
+                }
+
+            }
+
+            /*
+            for (int i = 0; i < pagelistBuffer.size(); i++) {
+                Page pageToWrite = pagelistBuffer.get(i);
+                String tableName = pageToWrite.getTablename();
+                Table table = catalog.getTableByName(tableName);
+                int numPageInTable = table.getPageID_list().size();
+
+                byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite, this.page_size);
+
+                String path = this.db_loc + "/Tables/" + tableName + ".txt";
+                PageBuffer.writeToDiskWithRandomAccess(path, pageToWrite, 0, this.page_size, numPageInTable);
+                this.storageManager.writeByteArrToDisk(path, byteArr);
+            }
+             */
+
+            //create new table with the new data
+            Table newTable = new Table(tableName, newPrimary, newAttriNameList, newAttriTypeList, db_loc, table.getPageID_list());
+
+            //set new table to catalog
+            this.storageManager.getCatalog().getTablesList().remove(table);
+            this.storageManager.getCatalog().getTablesList().add(newTable);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean addAttribute(String tableName, String attrName, String attrType, boolean hasDefault, String defaultValue) {
+        Table table = this.storageManager.getTableByName(tableName);
+        this.storageManager.setTempCatalog(this.storageManager.getTempCatalog());
+
+        if (table != null) {
+            if (table.getAttriName_list().contains(attrName)) {
+                System.err.println("Attribute " + attrName + " already exists in table.");
+
+                return false;
+            }
+
+            Table newTable = new Table(tableName, table.getPrimaryKeyName(), table.getAttriName_list(), table.getAttriType_list(), db_loc, table.getPageID_list());
+
+            newTable.getAttriName_list().add(attrName);
+            newTable.getAttriType_list().add(attrType);
 
             for (int i = 0; i < table.getPageID_list().size(); i++) {
                 Page page = new Page(table.getPageID_list().get(i), table.getTableName(), this.db_loc);
                 ArrayList<Record> records = page.getRecordList();
 
                 for (int j = 0; j < records.size(); j++) {
-                    //ArrayList<Object> values = records.get(j).getValuesList();
-                    records.get(j).getValuesList().remove(attributeIndex); // i hope this is how it works??
 
-                    records.get(j).getAttributeInfoList().remove(attributeIndex);
-                    //TODO: test if just adjusting the records works or if we need to make a new record
+                    if (hasDefault) {
+                        records.get(j).getValuesList().add(defaultValue);
+                    }
+                    else {
+                        records.get(j).getValuesList().add(null);
+                    }
 
-                    //ArrayList<AttributeInfo> newAttriInfoList = records.get(j).getAttributeInfoList();
-                    //Record newRecord = new Record(values, newAttriInfoList);
-                    //newRecords.add(newRecord);
+                    records.get(j).getAttributeInfoList().add(this.storageManager.convertToAttributeInfo(attrType));
+                }
+                //set new records to page
+                page.setRecordList(records);
+
+                //add page to buffer if there is room
+                if (this.pagelistBuffer.size() < this.bufferSize) {
+                    this.pagelistBuffer.add(page);
+                }
+                else {
+                    removeLRUFromBufferIfOverflow(getCatalog());
+                    this.pagelistBuffer.add(page);
                 }
             }
 
-            //create new table with the new data
-            Table newTable = new Table(tableName, newPrimary, newAttriNameList, newAttriTypeList, db_loc, table.getPageID_list());
-
-            //add new table to catalog
-            this.storageManager.getTempCatalog().getTablesList().remove(table);
-            this.storageManager.getTempCatalog().getTablesList().add(newTable);
-
-            //set drop attribute flag to true
-            this.storageManager.setDropAttributeFlag(true);
+            //set new table to catalog
+            this.storageManager.getCatalog().getTablesList().remove(table);
+            this.storageManager.getCatalog().getTablesList().add(newTable);
 
             return true;
         }
