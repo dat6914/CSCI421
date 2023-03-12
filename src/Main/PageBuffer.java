@@ -186,14 +186,13 @@ public class PageBuffer {
     /**
      * Write certain number of bytes to disk given a specific offset.
      *
-     * @param tableName tableName
+     * @param path     the path of the table
      * @param page     page to be written
      * @param offset   offset to write in disk
      * @param pageSize page size
      */
-    public void writeToDiskWithRandomAccess(String tableName, Page page, int offset, int pageSize, int numPageInTable) throws IOException {
-        String tablePath = this.db_loc + "/Tables/" + tableName;
-        File file = new File(tablePath);
+    public void writeToDiskWithRandomAccess(String path, Page page, int offset, int pageSize, int numPageInTable) throws IOException {
+        File file = new File(path);
 
         if (!file.exists()) {
             file.createNewFile();
