@@ -19,17 +19,15 @@ public class Table {
     private int recordNum = 0;
     private int pageNum = 0;
     private String db_loc;
-    private ArrayList<String> constraints;
 
 
-    public Table(String tableName, String primaryKeyName, ArrayList<String> attriNameList, ArrayList<String> attriTypeList, String db_loc, ArrayList<Integer> pageID_list, ArrayList<String> constraints) {
+    public Table(String tableName, String primaryKeyName, ArrayList<String> attriNameList, ArrayList<String> attriTypeList, String db_loc, ArrayList<Integer> pageID_list) {
         this.tableName = tableName;
         this.primaryKeyName = primaryKeyName;
         this.attriName_list = attriNameList;
         this.attriType_list = attriTypeList;
         this.db_loc = db_loc;
         this.pageID_list = pageID_list;
-        this.constraints = constraints;
 
     }
 
@@ -126,7 +124,5 @@ public class Table {
         return new byte[10];
 
     }
-
-    public ArrayList<String> getConstraints (){return this.constraints;}
 
 }
