@@ -381,6 +381,16 @@ public class PageBuffer {
                     Object recordPrimaryValue = record.getValuesList().get(indexOfPrimaryKey);
                     Object tempRecordPrimaryValue = tempRecord.getValuesList().get(indexOfPrimaryKey);
                     int compare = compare2Records(recordPrimaryValue, tempRecordPrimaryValue);
+                    if (constraintList.contains("unique")){
+                        for (int z = 0; z<record.getValuesList().size();z++){
+                            if (tempRecord.getValuesList().get(z).equals(record.getValuesList().get(z))){
+                                System.err.println("Can't Have duplicate attribute " + table.getAttriName_list().get(z));
+                                System.err.println("\nERROR");
+                                return false;
+
+                            }
+                        }
+                    }
                     if (compare == 0) {
                         System.err.println("Can't have duplicated primary key: " + printRecord(record));
                         System.err.println("ERROR");
