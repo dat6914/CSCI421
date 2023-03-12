@@ -62,7 +62,7 @@ public class PageBuffer {
      */
     public Catalog getCatalog() {
         return this.storageManager.getCatalog();
-    }   //TODO: see if this causes issues, IT SHOULDNT, but if anything then we gotta have
+    }
 
     /**
      * Method displays the display schema

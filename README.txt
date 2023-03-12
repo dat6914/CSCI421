@@ -4,21 +4,24 @@
 
 This is a Storage Manager and some basic SQL features.
 
-This implementation includes:
-1. Data will be stored to file system as bytes. Opening the data files in
-   a text editor should result in mostly unreadable text.
-2. use page buffer which is an in-memory buffer to store recently used pages
-   when the buffer is full , it will remove and write out the least recently used page
-   in order to load the new page to modify.
-
 How to run the program:
-    This text is attached with the src folder which contain every Java code files
-    Build the project:
-    Run this command:
-            java Main <db loc> <page_size> <buffer_size>
+
+    Setup:
+    Java SDK: Oracle OpenJDK 19.0.2
+    Language level: 19
+
+    1. Make sure that the Java SDK is installed on your system and the path is set correctly.
+       You can check this by typing java -version in the terminal.
+
+    2. Open the terminal and enter the src directory.
+
+    3. Compile via this command: 'javac -d bin -sourcepath src -cp lib/* src/Main.java'
+
+    Run program via this command:
+            java -cp bin Main <db_loc> <page_size> <buffer_size>
 
             <db_loc>        the absolute path to the directory to store the database in
             <page_size>     a limited size of a page (unit byte)
             <buffer_size>   the number of pages a buffer can hold
 
-Please check over our Phase 1 again! We have fixed the issues you mentioned before in grading feedback. Thank you!
+NOTE: Please check over our Phase 1 again! We have fixed the issues you mentioned before in grading feedback. Thank you!
