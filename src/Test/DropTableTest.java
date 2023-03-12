@@ -17,7 +17,7 @@ public class DropTableTest {
 
         //drop table
         PageBuffer pageBuffer = new PageBuffer("", 4, 4096);
-        Table table = new Table("table1", "id", new ArrayList<String>(), new ArrayList<String>(), "", new ArrayList<Integer>());
+        Table table = new Table("table1", "id", new ArrayList<String>(), new ArrayList<String>(), "", new ArrayList<Integer>(), new ArrayList<String>());
         pageBuffer.getStorageManager().getCatalog().getTablesList().add(table);
         pageBuffer.dropTable("table1");
         //pageBuffer.quitProgram(pageBuffer.getStorageManager(), pageBuffer.getPagelistBuffer()); //uncomment as needed when a catalog.txt exisits in the db_loc

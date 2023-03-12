@@ -141,7 +141,7 @@ public class StorageManager {
         }
 
         //loop through the rest of the input
-        for (int i = indexOfConstraints+1; i < table.length; i++) {
+        for (int i = 3; i < table.length; i++) {
             String inStr = table[i];
             //System.out.println("inStr: " + inStr);
             //index of datatype before "primarykey" is even
@@ -155,7 +155,9 @@ public class StorageManager {
                     }
                     parseAttributeTypeToNumber(attriTypeList, inStr);
                 } else {
-                    attriNameList.add(inStr);
+                    if (!((inStr.equals("primarykey") || (inStr.equals("notnull") || (inStr.equals("unique")))))) {
+                        attriNameList.add(inStr);
+                    }
                 }
             } else if (i == indexOfprimaryKey) {
                 primarykeyName = table[i-2];
@@ -169,7 +171,9 @@ public class StorageManager {
                     }
                     parseAttributeTypeToNumber(attriTypeList, inStr);
                 } else {
-                    attriNameList.add(inStr);
+                    if (!((inStr.equals("primarykey") || (inStr.equals("notnull") || (inStr.equals("unique")))))) {
+                        attriNameList.add(inStr);
+                    }
                 }
             }
 
