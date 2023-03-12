@@ -47,14 +47,14 @@ public class Main {
             if (!directPage.exists()) {
                 boolean created = directPage.mkdir();
                 if (created) {
-                    //System.out.println("Main.Page directory created successfully!");
+                    System.out.println("Tables directory created successfully!");
                 } else {
                     System.err.println("Failed to create page directory!");
                     System.err.println("ERROR");
                     return;
                 }
             } else {
-               // System.out.println("Main.Page directory already exists!");
+                System.out.println("Tables directory already exists!");
             }
 
         } else {
@@ -196,7 +196,6 @@ public class Main {
                 }
 
             } else if (optionArr[0].equals("drop") && optionArr[1].equals("table") && optionArr.length == 3) {
-                //TODO: test drop table
                 if (optionArr[2].charAt(optionArr[2].length() - 1) == ';') {
                     optionArr[2] = optionArr[2].substring(0, optionArr[2].length() - 1);
                 }
@@ -219,8 +218,6 @@ public class Main {
                     // drop <a name>: will remove the attribute with the given name from the table;
                     //including its data. drop is a keyword.
 
-                    //TODO: test drop attribute
-
                     if (pageBuffer.dropAttribute(optionArr[4], optionArr[2])) {
                         System.out.println("\nSUCCESS");
                     }
@@ -232,7 +229,6 @@ public class Main {
 
                 }
                 else if (optionArr[3].equals("add")) {
-                    //TODO: Test add attribute
 
                     //optionArr[optionArr.length- 1] = optionArr[optionArr.length- 1].substring(0, optionArr[optionArr.length- 1].length() - 1);
 
