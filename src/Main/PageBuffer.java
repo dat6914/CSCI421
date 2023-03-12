@@ -186,14 +186,18 @@ public class PageBuffer {
     /**
      * Write certain number of bytes to disk given a specific offset.
      *
-     * @param path     file path
+     * @param tableName tableName
      * @param page     page to be written
      * @param offset   offset to write in disk
      * @param pageSize page size
      */
-    public void writeToDiskWithRandomAccess(String path, Page page, int offset, int pageSize, int numPageInTable) {
-        File file = new File(path);
+    public void writeToDiskWithRandomAccess(String tableName, Page page, int offset, int pageSize, int numPageInTable) throws IOException {
+        String tablePath = this.db_loc + "/Tables/" + tableName;
+        File file = new File(tablePath);
 
+        if (!file.exists()) {
+            file.createNewFile();
+        }
         try {
             RandomAccessFile randomAccessFile = new RandomAccessFile(file.getPath(), "rw");
             byte[] data = page.convertPageToByteArr(page, pageSize);
@@ -282,7 +286,7 @@ public class PageBuffer {
     }
 
 
-    public boolean insertRecordsToTable(String insertSQL, Table table) {
+    public boolean insertRecordsToTable(String insertSQL, Table table) throws IOException {
         ArrayList<Record> recordList = returnListofStringArrRecord(insertSQL, table);
         if(recordList!= null) {
             int count = 0;
@@ -303,7 +307,7 @@ public class PageBuffer {
     }
 
 
-    public boolean insertARecordToTable(Record record, Table table) {
+    public boolean insertARecordToTable(Record record, Table table) throws IOException {
         ArrayList<Integer> pageIDList = table.getPageID_list();
         if (pageIDList.size() == 0) {
             TableFile tableFile = new TableFile(table, this.page_size, this.db_loc);
@@ -484,7 +488,7 @@ public class PageBuffer {
      *
      * @param catalog catalog
      */
-    private void removeLRUFromBufferIfOverflow(Catalog catalog) {
+    private void removeLRUFromBufferIfOverflow(Catalog catalog) throws IOException {
         if (this.pagelistBuffer.size() == this.bufferSize) {
             Page pageToWrite = this.pagelistBuffer.get(0);
             String tableName = pageToWrite.getTablename();
@@ -926,7 +930,7 @@ public class PageBuffer {
      * @param table table
      * @return record
      */
-    public Record getRecordByPrimaryKey(String primaryKeyValue, Table table) {
+    public Record getRecordByPrimaryKey(String primaryKeyValue, Table table) throws IOException {
         Object primaryKeyObject = this.storageManager.convertPrimaryValueToItsType(primaryKeyValue, table);
         String primaryKeyName = table.getPrimaryKeyName();
         int indexOfPrimary = getIndexOfColumn(primaryKeyName, table);
@@ -1110,7 +1114,7 @@ public class PageBuffer {
         return false;
     }
 
-    public boolean dropAttribute(String attrName, String tableName) {
+    public boolean dropAttribute(String attrName, String tableName) throws IOException {
         Table table = this.storageManager.getTableByName(tableName);
         this.storageManager.setTempCatalog(this.storageManager.getTempCatalog());   //this is the catalog that will get written upon quit.
 
@@ -1209,7 +1213,7 @@ public class PageBuffer {
         return false;
     }
 
-    public boolean addAttribute(String tableName, String attrName, String attrType, boolean hasDefault, String defaultValue) {
+    public boolean addAttribute(String tableName, String attrName, String attrType, boolean hasDefault, String defaultValue) throws IOException {
         Table table = this.storageManager.getTableByName(tableName);
         this.storageManager.setTempCatalog(this.storageManager.getTempCatalog());
 

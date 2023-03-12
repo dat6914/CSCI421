@@ -91,7 +91,7 @@ public class StorageManager {
             }
         }
         table = result.toArray(new String[0]);
-        System.out.println("should only contains whats in the (): "+ result);
+        //System.out.println("should only contains whats in the (): "+ result);
 
         //check if there is any primarykey or many primarykey
         int primarykeyNum = 0;
