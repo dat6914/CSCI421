@@ -139,35 +139,39 @@ public class PageBuffer {
                 Page pageToWrite = pagelistBuffer.get(i);
                 String tableName = pageToWrite.getTablename();
                 Table table = catalog.getTableByName(tableName);
-                int numPageInTable = table.getPageID_list().size();
 
-                byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite, this.page_size);
+                if (table != null) {
+                    int numPageInTable = table.getPageID_list().size();
 
-                String path = this.db_loc + "/Tables/" + tableName + ".txt";
-                ArrayList<Integer> pageIDListFromDisk = getPageIDListFromDiskWithRA(table);
-                File file = new File(path);
-                if (file.exists()) {
-                    //check if this is a new page or not
-                    if (pageIDListFromDisk.contains(pageToWrite.getPageID())) {
-                        int indexPage = pageIDListFromDisk.indexOf(pageToWrite.getPageID());
-                        int offset = indexPage * page_size;
-                        writeToDiskWithRandomAccess(path, pageToWrite,offset , this.page_size, numPageInTable);
+                    byte[] byteArr = pageToWrite.convertPageToByteArr(pageToWrite, this.page_size);
+
+                    String path = this.db_loc + "/Tables/" + tableName + ".txt";
+                    ArrayList<Integer> pageIDListFromDisk = getPageIDListFromDiskWithRA(table);
+                    File file = new File(path);
+                    if (file.exists()) {
+                        //check if this is a new page or not
+                        if (pageIDListFromDisk.contains(pageToWrite.getPageID())) {
+                            int indexPage = pageIDListFromDisk.indexOf(pageToWrite.getPageID());
+                            int offset = indexPage * page_size;
+                            writeToDiskWithRandomAccess(path, pageToWrite,offset , this.page_size, numPageInTable);
+                        } else {
+                            int offset = table.getPageID_list().size() * page_size;
+                            writeToDiskWithRandomAccess(path, pageToWrite, offset, this.page_size, numPageInTable);
+                        }
                     } else {
-                        int offset = table.getPageID_list().size() * page_size;
-                        writeToDiskWithRandomAccess(path, pageToWrite, offset, this.page_size, numPageInTable);
-                    }
-                } else {
-                    try {
-                        file.createNewFile();
-                        writeToDiskWithRandomAccess(path, pageToWrite, 0, this.page_size, numPageInTable);
-                    } catch (IOException e) {
-                        System.err.println("Fails to write page to new table file.");
-                        e.printStackTrace();
-                        System.err.println("ERROR");
-                        return false;
-                    }
+                        try {
+                            file.createNewFile();
+                            writeToDiskWithRandomAccess(path, pageToWrite, 0, this.page_size, numPageInTable);
+                        } catch (IOException e) {
+                            System.err.println("Fails to write page to new table file.");
+                            e.printStackTrace();
+                            System.err.println("ERROR");
+                            return false;
+                        }
 
+                    }
                 }
+
 
                 //this.storageManager.writeByteArrToDisk(path, byteArr);
             }
@@ -1014,7 +1018,7 @@ public class PageBuffer {
                 stringBuilder.append(temp);
                 stringBuilder.append(")");
             } else {
-                System.out.println("Something goes wrong while converting table to string!");
+                System.err.println("Something went wrong while converting table to string!");
                 System.err.println("ERROR");
                 return null;
             }
