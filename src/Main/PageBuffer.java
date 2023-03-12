@@ -880,26 +880,31 @@ public class PageBuffer {
      */
     public ArrayList<Record> getAllRecordsByTable(Table table) {
         ArrayList<Record> result = new ArrayList<>();
-        ArrayList<Integer> pageIDlist = table.getPageID_list();
-        for (int i = 0; i < pageIDlist.size(); i++) {
-            int pageID = pageIDlist.get(i);
-            Page page = new Page(pageID, table.getTableName(), this.db_loc);
-            if (this.pagelistBuffer.contains(page)) {
-                for (Page tempPage : this.pagelistBuffer) {
-                    if (tempPage.equals(page)) {
-                        page = tempPage;
-                        break;
+
+        if (table.getPageID_list() != null) {
+            ArrayList<Integer> pageIDlist = table.getPageID_list();
+
+            for (int i = 0; i < pageIDlist.size(); i++) {
+                int pageID = pageIDlist.get(i);
+                Page page = new Page(pageID, table.getTableName(), this.db_loc);
+                if (this.pagelistBuffer.contains(page)) {
+                    for (Page tempPage : this.pagelistBuffer) {
+                        if (tempPage.equals(page)) {
+                            page = tempPage;
+                            break;
+                        }
                     }
+                } else {
+                    this.pagelistBuffer.add(page);
                 }
-            } else {
-                this.pagelistBuffer.add(page);
+                ArrayList<Record> recordArrayList = page.getRecordList();
+                result.addAll(recordArrayList);
             }
-            ArrayList<Record> recordArrayList = page.getRecordList();
-            result.addAll(recordArrayList);
+            if (result.size() == 0) {
+                return null;
+            }
         }
-        if (result.size() == 0) {
-            return null;
-        }
+
         return result;
     }
 
@@ -1059,9 +1064,32 @@ public class PageBuffer {
         stringBuilder.append("Pages: ");
         stringBuilder.append(table.getPageID_list().size()).append("\n");
         stringBuilder.append("Records: ");
-        int numRec = getNumRecord(table);
-        table.setRecordNum(numRec);
-        stringBuilder.append(table.getRecordNum()).append("\n");
+
+        int records = 0;
+        //if (table.getPageID_list() != null) {
+        //    ArrayList<Integer> pageIDlist = table.getPageID_list();
+
+        //    for (int i = 0; i < pageIDlist.size(); i++) {
+        //        int pageID = pageIDlist.get(i);
+        //        Page page = new Page(pageID, table.getTableName(), this.db_loc);
+        //        records += page.getRecordList().size();
+        //    }
+        //}
+
+        stringBuilder.append(records).append("\n");
+
+        //ArrayList<Record> records = getAllRecordsByTable(table);
+        //if (records == null) {
+        //    stringBuilder.append(0).append("\n");
+        //}
+        //else {
+        //    stringBuilder.append(records.size()).append("\n");
+        //}
+
+
+        //int numRec = getNumRecord(table);
+        //table.setRecordNum(numRec);
+
 
         return stringBuilder.toString();
     }
