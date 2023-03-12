@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.regex.Pattern;
 
 /**
  * CSCI420 Project - Phase 1
@@ -309,8 +310,26 @@ public class PageBuffer {
         return false;
     }
 
+    public static boolean containsOnlyQuotesAndSpaces(String text) {
+        String pattern = "^[ \"'\"]*$";
+        return Pattern.matches(pattern, text);
+    }
+
 
     public boolean insertARecordToTable(Record record, Table table) throws IOException {
+        ArrayList<String> constraintList  = table.getConstraints();
+        if (!constraintList.isEmpty()){
+            if (constraintList.contains("notnull")){
+                for (int z = 0; z < record.getValuesList().size(); z++){
+                    if (containsOnlyQuotesAndSpaces(record.getValuesList().get(z).toString())){
+                        System.err.println("The attribute " + table.getAttriName_list().get(z)+" cannot be null.");
+                        System.err.println("\nERROR");
+                        return false;
+                    }
+                }
+
+            }
+        }
         ArrayList<Integer> pageIDList = table.getPageID_list();
         if (pageIDList.size() == 0) {
             TableFile tableFile = new TableFile(table, this.page_size, this.db_loc);
