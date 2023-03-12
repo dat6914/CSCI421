@@ -2,6 +2,7 @@ package Main;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -194,6 +195,42 @@ public class Catalog {
             pageIDList.add(pageID);
         }
 
+        /*
+        ArrayList<String> constraints = table.getConstraints();
+        int numConstraints = constraints.size();
+        byte[] numConstraintARR = ByteBuffer.allocate(Integer.BYTES).putInt(numConstraints).array();
+        result = appendByteBuffer(result, numConstraintARR);
+
+        for (int i = 0; i < numConstraints; i++) {
+            String constraint = constraints.get(i);
+
+            byte[] constraintArr = constraint.getBytes(StandardCharsets.UTF_8);
+            int constraintSize = constraintArr.length;
+
+            byte[] constraintSizeArr = ByteBuffer.allocate(Integer.BYTES).putInt(constraintSize).array();
+            result = appendByteBuffer(result, constraintSizeArr);
+
+            result = appendByteBuffer(result, constraintArr);
+        }
+         */
+
+        ArrayList<String> constraintList = new ArrayList<>();
+        byte[] numConstraintArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + Integer.BYTES);
+        int numConstraints = ByteBuffer.wrap(numConstraintArr).getInt();
+        indexTracking += Integer.BYTES;
+
+        for (int i = 0; i < numConstraints; i++) {
+            byte[] constraintSizeArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + Integer.BYTES);
+            int constraintSize = ByteBuffer.wrap(constraintSizeArr).getInt();
+            indexTracking += Integer.BYTES;
+
+            byte[] constraintArr = Arrays.copyOfRange(tableArr, indexTracking, constraintSize + indexTracking);
+            indexTracking += constraintSize;
+
+            String constraint = new String(constraintArr, StandardCharsets.UTF_8);
+            constraintList.add(constraint);
+        }
+
 //        byte[] numRecArr = Arrays.copyOfRange(tableArr, indexTracking, indexTracking + Integer.BYTES);
 //        int numRec = ByteBuffer.wrap(numRecArr).getInt();
 //        indexTracking = indexTracking + Integer.BYTES;
@@ -219,7 +256,7 @@ public class Catalog {
             return null;
         }
 
-        Table newTable = new Table(tableName, primarykeyName, attriNameList, attriTypeList, this.DBlocation, pageIDList);
+        Table newTable = new Table(tableName, primarykeyName, attriNameList, attriTypeList, this.DBlocation, pageIDList, constraintList);
 
         return newTable;
     }
@@ -336,6 +373,23 @@ public class Catalog {
 //        //get numrecords
 //        byte[] numRecArr = ByteBuffer.allocate(Integer.BYTES).putInt(numRec).array();
 //        result = appendByteBuffer(result, numRecArr);
+
+        ArrayList<String> constraints = table.getConstraints();
+        int numConstraints = constraints.size();
+        byte[] numConstraintARR = ByteBuffer.allocate(Integer.BYTES).putInt(numConstraints).array();
+        result = appendByteBuffer(result, numConstraintARR);
+
+        for (int i = 0; i < numConstraints; i++) {
+            String constraint = constraints.get(i);
+
+            byte[] constraintArr = constraint.getBytes(StandardCharsets.UTF_8);
+            int constraintSize = constraintArr.length;
+
+            byte[] constraintSizeArr = ByteBuffer.allocate(Integer.BYTES).putInt(constraintSize).array();
+            result = appendByteBuffer(result, constraintSizeArr);
+
+            result = appendByteBuffer(result, constraintArr);
+        }
 
         // get the total size of table
         int resultSize = result.array().length;
