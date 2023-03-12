@@ -1169,6 +1169,12 @@ public class PageBuffer {
             tablesMarkedForDeletion.add(table);
             this.storageManager.getCatalog().getTablesList().remove(table);
 
+            try {
+                Files.deleteIfExists(Paths.get(this.db_loc + "/" + tableName + ".txt"));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
             return true;
         }
         return false;
