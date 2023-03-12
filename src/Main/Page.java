@@ -254,4 +254,7 @@ public class Page {
         return pointerList.equals(other.pointerList) && record_list.equals(other.record_list);
     }
 
+    public void setRecordList(ArrayList<Record> records) {
+        this.record_list = records;
+    }
 }
